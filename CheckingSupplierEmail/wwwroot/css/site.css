@@ -69,3 +69,130 @@ body {
   white-space: nowrap;
   line-height: 60px; /* Vertically center the text there */
 }
+
+/* Core Layout and Typography */
+body {
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f0f2f5;
+}
+
+.container {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Navbar Enhancements */
+.navbar-dark.bg-primary {
+    background-color: #004d99 !important; /* Deeper blue for a professional look */
+    transition: background-color 0.3s ease;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    transition: color 0.3s ease;
+}
+
+    .navbar-nav .nav-link:hover {
+        color: #ffffff !important;
+    }
+
+    .navbar-nav .nav-link.btn-outline-light {
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+        .navbar-nav .nav-link.btn-outline-light:hover {
+            background-color: #ffffff;
+            color: #004d99 !important;
+        }
+
+/* Login Page Styling */
+.vh-100 {
+    min-height: 100vh;
+}
+
+.login-card {
+    border: none;
+    border-radius: 1rem;
+    max-width: 450px; /* Optimal width for a laptop screen */
+    width: 100%;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+    .login-card .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        color: #007bff; /* Highlight label on focus/input */
+    }
+
+/* Custom Input Styles */
+.form-floating .form-control {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+    .form-floating .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    }
+
+.login-btn {
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+    .login-btn:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+        transform: translateY(-2px); /* Subtle lift on hover */
+    }
+
+/* Error Message Styling */
+.error {
+    font-size: 0.85rem;
+    padding-left: 0.25rem;
+    animation: slideIn 0.3s ease-in-out;
+}
+
+/* Responsive Overrides (for larger screens) */
+@media (min-width: 992px) {
+    .container {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .login-card {
+        padding: 4rem;
+        max-width: 500px; /* Slightly larger on big screens */
+    }
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

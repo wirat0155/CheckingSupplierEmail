@@ -1,5 +1,6 @@
 ﻿using CheckingSupplierEmail.Models.DbViewModels;
 using CheckingSupplierEmail.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace CheckingSupplierEmail.Controllers
 {
+    [Authorize]
     public class EmailController : BaseController
     {
         private readonly PurCCEmailRepository _email;

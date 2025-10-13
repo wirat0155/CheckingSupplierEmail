@@ -1,5 +1,6 @@
 ﻿using CheckingSupplierEmail.Data;
 using CheckingSupplierEmail.Models.DbModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace CheckingSupplierEmail.Controllers
 {
+    [Authorize]
     public class VendorController : Controller
     {
         private readonly ERPDbContext _context;

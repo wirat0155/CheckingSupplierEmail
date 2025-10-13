@@ -12,6 +12,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JWTRegen.Models;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using CheckingSupplierEmail.Middlewares;
 
 namespace CheckingSupplierEmail
 {
@@ -29,6 +34,50 @@ namespace CheckingSupplierEmail
         {
             services.AddControllersWithViews();
 
+            #region JWT
+            services.AddScoped<JWTRegen.Interfaces.IJwtTokenService, JWTRegen.Services.JwtTokenService>();
+            services.AddScoped<JWTRegen.Interfaces.IClaimsHelper, JWTRegen.Services.ClaimsHelper>();
+            var jwtSettingsSection = Configuration.GetSection("JwtSettings");
+            services.Configure<JwtSettings>(jwtSettingsSection);
+
+            var jwtSettings = jwtSettingsSection.Get<JwtSettings>();
+            var key = Encoding.ASCII.GetBytes(jwtSettings.SecretKey);
+
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;  // Enable in production (false for local testing)
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwtSettings.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+                x.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Cookies["purvenportal_jwt"];
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            context.Token = token;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+            #endregion
+
             #region DB
             services.AddDbContext<ERPDbContext>(options =>
             options.UseSqlServer(
@@ -44,7 +93,6 @@ namespace CheckingSupplierEmail
             services.AddScoped(typeof(DapperService));
             services.AddScoped(typeof(PurCCEmailRepository));
             services.AddScoped(typeof(EmployeeRepository));
-            
             #endregion
         }
 
@@ -61,18 +109,46 @@ namespace CheckingSupplierEmail
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
+            app.Use(async (context, next) =>
+            {
+                try
+                {
+                    await next.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    if (ex.Message.Contains("Token has expired"))
+                    {
+                        if (context.Request.Cookies.ContainsKey("purvenportal_jwt"))
+                        {
+                            context.Response.Cookies.Delete("purvenportal_jwt");
+                        }
+                        context.Response.Redirect("/Auth/vLogin");
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            });
+
+            app.UseMiddleware<JWTRegen.Middleware.TokenVersionMiddleware>();
+            app.UseMiddleware<RedirectUnauthorizedMiddleware>();
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Auth}/{action=vLogin}/{id?}");
             });
         }
     }

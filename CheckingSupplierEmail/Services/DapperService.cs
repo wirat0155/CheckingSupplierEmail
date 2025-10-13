@@ -23,6 +23,10 @@ namespace CheckingSupplierEmail.Services
             {
                 return new SqlConnection(_configuration["ConnectionStrings:UICT"]);
             }
+            else if (dbCharacter == "2")
+            {
+                return new SqlConnection(_configuration["ConnectionStrings:UICT2"]);
+            }
             else if (dbCharacter == "E")
             {
                 return new SqlConnection(_configuration["ConnectionStrings:ERP"]);
