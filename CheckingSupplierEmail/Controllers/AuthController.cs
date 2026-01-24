@@ -48,7 +48,7 @@ namespace CheckingSupplierEmail.Controllers
 
                 Response.Cookies.Append("purvenportal_jwt", token, new CookieOptions
                 {
-                    HttpOnly = false,
+                    HttpOnly = true,
                     //Secure = true, disable when use http
                     SameSite = SameSiteMode.Strict,
                     Path = "/", // Set cookie available across the entire site

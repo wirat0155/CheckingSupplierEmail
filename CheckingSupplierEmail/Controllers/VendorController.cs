@@ -21,7 +21,7 @@ namespace CheckingSupplierEmail.Controllers
         }
         public async Task<IActionResult> vIndex()
         {
-            var ls_vendor = await _context.VEN.ToListAsync();
+            var ls_vendor = await _context.VEN.Where(e => e.VEN_StatusCode == "Active").ToListAsync();
             List<VEN> ls_invalid_vendor = new List<VEN>();
             bool isValidEmail;
 
