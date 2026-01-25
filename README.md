@@ -1,50 +1,50 @@
 # CheckingSupplierEmail
 
-This ASP.NET Core MVC application is designed to help purchasing and IT teams ensure that supplier (vendor) contact information is accurate and actionable. It focuses on validating supplier email addresses within the ERP system to prevent communication failures during the Purchase Order (PO) process.
+เว็บแอปพลิเคชัน ASP.NET Core MVC นี้ถูกออกแบบมาเพื่อช่วยให้ทีมจัดซื้อและฝ่าย IT มั่นใจได้ว่าข้อมูลการติดต่อของ Supplier (Vendor) มีความถูกต้องและใช้งานได้จริง โดยเน้นไปที่การตรวจสอบที่อยู่อีเมลในระบบ ERP เพื่อป้องกันปัญหาการสื่อสารล้มเหลวในระหว่างกระบวนการส่งใบสั่งซื้อ (PO)
 
-## 🎯 Objectives
+## 🎯 วัตถุประสงค์ (Objectives)
 
-- **Prevent PO Delivery Failures:** Identify active vendors who lack a valid email address before a PO is sent.
-- **Data Integrity:** Ensure that the `VEN_POEmail` field in the ERP database conforms to standard email formats.
-- **Internal Access Control:** Manage internal user mapping (Employee No. & Email) for related purchasing notifications or CC lists.
+- **ป้องกันการส่ง PO ล้มเหลว:** ระบุตัว Vendor ที่มีสถานะ "Active" แต่ขาดข้อมูลอีเมลที่ถูกต้อง ก่อนที่จะมีการส่งใบสั่งซื้อออกไป
+- **ความถูกต้องของข้อมูล (Data Integrity):** ตรวจสอบว่าฟิลด์ `VEN_POEmail` ในฐานข้อมูล ERP เป็นไปตามรูปแบบมาตรฐานของอีเมล
+- **การจัดการข้อมูลภายใน (Internal Management):** จัดการการเชื่อมโยงผู้ใช้งานภายใน (รหัสพนักงาน & อีเมล) สำหรับการแจ้งเตือนหรือรายชื่อผู้ที่เกี่ยวข้อง (CC Lists) ในงานจัดซื้อ
 
-## ✨ Key Features
+## ✨ ฟีเจอร์หลัก (Key Features)
 
-### 1. Vendor Email Validation (Monitor)
+### 1. การตรวจสอบอีเมล Vendor (Vendor Email Validation)
 
-The system automatically scans all vendors marked as **"Active"** and verifies their email configurations:
+ระบบจะสแกน Vendor ทั้งหมดที่มีสถานะ **"Active"** และตรวจสอบการตั้งค่าอีเมลโดยอัตโนมัติ:
 
-- **Missing Emails:** Identifies vendors with empty email fields.
-- **Format Validation:** Checks if the email address follows standard formats (e.g., `user@domain.com`).
-- **Multiple Emails:** Supports validating multiple emails separated by semicolons (`;`).
-- **Reporting:** Displays a list of vendors with invalid or missing emails, along with the specific reason for failure.
+- **อีเมลสูญหาย:** ค้นหา Vendor ที่ไม่ได้ระบุอีเมล
+- **ตรวจสอบรูปแบบ (Format Validation):** ตรวจสอบว่าที่อยู่อีเมลถูกต้องตามรูปแบบมาตรฐานหรือไม่ (เช่น `user@domain.com`)
+- **รองรับหลายอีเมล:** รองรับการตรวจสอบกรณีที่มีหลายอีเมลคั่นด้วยเครื่องหมาย semicolon (`;`)
+- **รายงานผล:** แสดงรายการ Vendor ที่อีเมลไม่ถูกต้องหรือขาดหายไป พร้อมระบุสาเหตุของปัญหา
 
-### 2. Internal Email Management (PurCCEmail)
+### 2. การจัดการอีเมลภายใน (Internal Email Management - PurCCEmail)
 
-A dedicated interface for managing internal users associated with the purchasing process:
+หน้าจอสำหรับจัดการข้อมูลผู้ใช้งานภายในที่เกี่ยวข้องกับกระบวนการจัดซื้อ:
 
-- **CRUD Operations:** Add, Edit, Delete internal email configurations.
-- **Employee Integration:** Links usernames to specific Employee Numbers (EmpNo).
-- **Validation:**
-  - Verifies that the Employee Number exists.
-  - Ensures the employee has not resigned (`empstatusno != "R"`).
-  - Prevents duplicate email entries.
+- **จัดการข้อมูล (CRUD):** เพิ่ม, แก้ไข, และลบ การตั้งค่าอีเมลภายใน
+- **เชื่อมต่อข้อมูลพนักงาน:** เชื่อมโยง Username เข้ากับรหัสพนักงาน (EmpNo) จริง
+- **การตรวจสอบความถูกต้อง:**
+  - ตรวจสอบว่ารหัสพนักงานมีอยู่จริงในระบบ
+  - ตรวจสอบว่าพนักงานยังไม่ลาออก (`empstatusno != "R"`)
+  - ป้องกันการบันทึกข้อมูลอีเมลซ้ำซ้อน
 
-## 🛠️ Technology Stack
+## 🛠️ เทคโนโลยีที่ใช้ (Technology Stack)
 
 - **Framework:** ASP.NET Core MVC
-- **Database:** SQL Server (via Entity Framework Core)
-- **Frontend:** Razor Views, JavaScript (w/ jQuery), Bootstrap
+- **Database:** SQL Server (ผ่าน Entity Framework Core)
+- **Frontend:** Razor Views, JavaScript (ใช้งานร่วมกับ jQuery), Bootstrap
 - **Authentication:** Custom Identity/Claims-based system
 
-## 🚀 Getting Started
+## 🚀 การเริ่มต้นใช้งาน (Getting Started)
 
 1.  **Clone the repository**
     ```bash
     git clone https://github.com/wirat0155/CheckingSupplierEmail.git
     ```
-2.  **Configure Database**
-    - Ensure the `appsettings.json` connection strings point to your ERP and valid databases.
-3.  **Run the Application**
-    - Open the solution in Visual Studio.
-    - Build and Run (F5).
+2.  **ตั้งค่าฐานข้อมูล**
+    - ตรวจสอบและแก้ไข `appsettings.json` ให้ Connection Strings ชี้ไปยังฐานข้อมูล ERP และฐานข้อมูลที่ถูกต้องของคุณ
+3.  **รันแอปพลิเคชัน**
+    - เปิด Solution ใน Visual Studio
+    - กด Build และ Run (F5)
