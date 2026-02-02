@@ -47,20 +47,20 @@ namespace CheckingSupplierEmail.Services
             using var connection = CreateConnection(dbCharacter);
             return await connection.ExecuteScalarAsync(query, param);
         }
-        public async Task<T> ExecuteScalar<T>(string dbCharacter, string query, object param = null)
+        public async Task<T> ExecuteScalar<T>(string dbCharacter, string query, object param = null, int? commandTimeout = null)
         {
             using var connection = CreateConnection(dbCharacter);
-            return await connection.ExecuteScalarAsync<T>(query, param);
+            return await connection.ExecuteScalarAsync<T>(query, param, commandTimeout: commandTimeout);
         }
-        public async Task<IEnumerable<dynamic>> Query(string dbCharacter, string query, object param = null)
+        public async Task<IEnumerable<dynamic>> Query(string dbCharacter, string query, object param = null, int? commandTimeout = null)
         {
             using var connection = CreateConnection(dbCharacter);
-            return await connection.QueryAsync<dynamic>(query, param);
+            return await connection.QueryAsync<dynamic>(query, param, commandTimeout: commandTimeout);
         }
-        public async Task<IEnumerable<T>> Query<T>(string dbCharacter, string query, object param = null)
+        public async Task<IEnumerable<T>> Query<T>(string dbCharacter, string query, object param = null, int? commandTimeout = null)
         {
             using var connection = CreateConnection(dbCharacter);
-            return await connection.QueryAsync<T>(query, param);
+            return await connection.QueryAsync<T>(query, param, commandTimeout: commandTimeout);
         }
         public async Task<dynamic> QueryFirst(string dbCharacter, string query, object param = null)
         {

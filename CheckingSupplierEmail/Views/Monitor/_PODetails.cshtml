@@ -1,0 +1,124 @@
+@model IEnumerable<CheckingSupplierEmail.Models.DbViewModels.PODetailViewModel>
+
+@if (Model != null && Model.Any())
+{
+    var firstItem = Model.First();
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide">Vendor</p>
+                <p class="text-lg font-bold text-gray-900">@firstItem.VendorId - @firstItem.VendorName</p>
+            </div>
+            <div class="md:text-right">
+                <p class="text-xs text-gray-500 uppercase tracking-wide">PO Number</p>
+                <p class="text-xl font-bold text-primary-600 font-mono">@firstItem.PoNo</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Line</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Item</th>
+                    <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                    <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                    <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rcp Qty</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rcp Date</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inv. No</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inv. Date</th>
+                    <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @foreach (var item in Model)
+                {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">@item.LineNo</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">@item.ItemName</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">@item.UnitPrice.ToString("N2") <span class="text-xs text-gray-400">@item.Currency</span></td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium">@item.Qty.ToString("N0") <span class="text-xs text-gray-500 font-normal">@item.Unit</span></td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            @if (item.ReceiptQty.HasValue && item.ReceiptQty > 0)
+                            {
+                                <span class="text-green-600 font-bold">@item.ReceiptQty.Value.ToString("N0")</span>
+                            }
+                            else
+                            {
+                                <span class="text-gray-300">-</span>
+                            }
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            @if (item.ReceiptDate.HasValue)
+                            {
+                                @item.ReceiptDate?.ToString("dd/MM/yyyy")
+                            }
+                            else
+                            {
+                                <span class="text-gray-300">-</span>
+                            }
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            @if(!string.IsNullOrEmpty(item.InvoiceNo)) 
+                            { 
+                                @item.InvoiceNo 
+                            } 
+                            else 
+                            { 
+                                <span class="text-gray-300">-</span> 
+                            }
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            @if (item.InvoiceDate.HasValue)
+                            {
+                                @item.InvoiceDate?.ToString("dd/MM/yyyy")
+                            }
+                            else
+                            {
+                                <span class="text-gray-300">-</span>
+                            }
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            @if (!string.IsNullOrEmpty(item.ReceiptStatus))
+                            {
+                                if(item.ReceiptStatus.Equals("Late", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        @item.ReceiptStatus
+                                    </span>
+                                }
+                                else if(item.ReceiptStatus.Equals("Early", StringComparison.OrdinalIgnoreCase) || item.ReceiptStatus.Equals("On Time", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        @item.ReceiptStatus
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        @item.ReceiptStatus
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-gray-300">-</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="text-center py-12 text-gray-500">
+        <div class="bg-gray-100 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-search-minus text-3xl text-gray-400"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900">No details found</h3>
+        <p class="mt-1">We couldn't find any line items for this Purchase Order.</p>
+    </div>
+}

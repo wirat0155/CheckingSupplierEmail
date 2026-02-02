@@ -93,6 +93,8 @@ namespace CheckingSupplierEmail
             services.AddScoped(typeof(DapperService));
             services.AddScoped(typeof(PurCCEmailRepository));
             services.AddScoped(typeof(EmployeeRepository));
+            services.AddScoped(typeof(POLogRepository));
+            services.AddScoped(typeof(MonitorPRRepository));
             #endregion
         }
 

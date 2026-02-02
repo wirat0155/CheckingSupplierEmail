@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Linq;
 
 namespace CheckingSupplierEmail.Controllers
 {
+    [Authorize]
     public class BaseController : Controller
     {
         public async override void OnActionExecuting(ActionExecutingContext context)

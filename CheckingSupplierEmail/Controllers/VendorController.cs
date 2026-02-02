@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace CheckingSupplierEmail.Controllers
 {
     [Authorize]
-    public class VendorController : Controller
+    public class VendorController : BaseController
     {
         private readonly ERPDbContext _context;
 

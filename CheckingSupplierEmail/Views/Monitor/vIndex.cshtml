@@ -1,0 +1,291 @@
+@model IEnumerable<CheckingSupplierEmail.Models.DbViewModels.POLogViewModel>
+
+@{
+    ViewData["Title"] = "PO Monitor";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-primary-500 pl-4">PO Send Log</h1>
+            <p class="mt-2 text-gray-600 pl-4">Monitor purchase order email status.</p>
+        </div>
+        
+        <!-- Filter Form -->
+        <form method="get" class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Quick Date</label>
+                <select id="quickDate" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm">
+                    <option value="last1week">1 สัปดาห์ล่าสุด</option>
+                    <option value="last1month">1 เดือนล่าสุด</option>
+                    <option value="custom">กำหนดเอง</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Send Date Start</label>
+                <input type="date" name="startDate" value="@ViewData["StartDate"]" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Send Date End</label>
+                <input type="date" name="endDate" value="@ViewData["EndDate"]" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm">
+                    <option value="ALL" selected="@(ViewData["Status"] as string == "ALL")">All Status</option>
+                    <option value="S" selected="@(ViewData["Status"] as string == "S")">Sent</option>
+                    <option value="R" selected="@(ViewData["Status"] as string == "R")">Read</option>
+                </select>
+            </div>
+            <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium transition-colors shadow-sm">
+                <i class="fas fa-search mr-2"></i> Filter
+            </button>
+            <a href="@Url.Action("vIndex")" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors shadow-sm border border-gray-300 flex items-center">
+                <i class="fas fa-undo mr-2"></i> Reset Filter
+            </a>
+        </form>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500" id="poLogTable">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3">PO No.</th>
+                            <th class="px-6 py-3">Send Date</th>
+                            <th class="px-6 py-3">Send By</th>
+                            <th class="px-6 py-3">Read By</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach (var item in Model)
+                        {
+                            <tr class="bg-white hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-mono font-medium text-primary-600">@item.PoNo</td>
+                                <td class="px-6 py-4">@item.SendDate?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                <td class="px-6 py-4">@item.SendBy</td>
+                                <td class="px-6 py-4">
+                                    @if (item.ReadDate.HasValue)
+                                    {
+                                         <span class="text-green-700 font-medium">@item.ReadDate?.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-400 italic">Not read yet</span>
+                                    }
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if (item.Status == "S")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <span class="w-2 h-2 mr-1 bg-yellow-400 rounded-full"></span> Sent
+                                        </span>
+                                    }
+                                    else if (item.Status == "R")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <span class="w-2 h-2 mr-1 bg-green-400 rounded-full"></span> Read
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            @item.Status
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button onclick="viewDetails('@item.PoNo')" class="text-primary-600 hover:text-primary-900 transition-colors focus:outline-none" title="View Details">
+                                        More
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeModal()"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <!-- Modal Panel -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-7xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center gap-2" id="modal-title">
+                            <i class="fas fa-file-invoice text-primary-500"></i> PO Details
+                        </h3>
+                        <div class="mt-4" id="modalContent">
+                            <!-- Content will be loaded here -->
+                            <div class="flex justify-center py-10">
+                                <i class="fas fa-spinner fa-spin text-4xl text-primary-200"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables CSS/JS (Generic) -->
+    <!-- DataTables CSS/JS (Generic) -->
+    <link href="~/lib/datatables/css/jquery.dataTables.min.css" rel="stylesheet" asp-append-version="true" />
+    <link rel="stylesheet" type="text/css" href="~/lib/datatables/css/buttons.dataTables.min.css" asp-append-version="true">
+    
+    <style>
+        .dataTables_wrapper .dataTables_length select {
+            padding-right: 2rem;
+            background-image: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+        }
+        table.dataTable.no-footer {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #0ea5e9;
+            color: white !important;
+            border: 1px solid #0ea5e9;
+        }
+    </style>
+
+    <script src="~/lib/datatables/js/jquery.dataTables.min.js" asp-append-version="true"></script>
+    <script type="text/javascript" src="~/lib/datatables/js/dataTables.buttons.min.js" asp-append-version="true"></script>
+    <script type="text/javascript" src="~/lib/datatables/js/jszip.min.js" asp-append-version="true"></script>
+    <script type="text/javascript" src="~/lib/datatables/js/buttons.html5.min.js" asp-append-version="true"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Quick Date Picker Logic
+            const $quickDate = $('#quickDate');
+            const $startDate = $('input[name="startDate"]');
+            const $endDate = $('input[name="endDate"]');
+
+            function formatDate(date) {
+                let d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+
+                return [year, month, day].join('-');
+            }
+
+            function setDates(range) {
+                const today = new Date();
+                let start = new Date();
+
+                if (range === 'last1week') {
+                    start.setDate(today.getDate() - 7);
+                } else if (range === 'last1month') {
+                    start.setMonth(today.getMonth() - 1);
+                } else {
+                    return; 
+                }
+
+                $startDate.val(formatDate(start));
+                $endDate.val(formatDate(today));
+            }
+
+            $quickDate.on('change', function() {
+                setDates($(this).val());
+            });
+
+            $startDate.add($endDate).on('change', function() {
+                $quickDate.val('custom');
+            });
+
+            // Init Default
+            if (!$startDate.val() && !$endDate.val()) {
+                $quickDate.val('last1week');
+                setDates('last1week');
+            } else {
+                 $quickDate.val('custom');
+            }
+
+            $('#poLogTable').DataTable({
+                "order": [[1, "desc"]], // Default sort by Send Date Desc
+                "language": {
+                    "url": "@Url.Content("~/lib/datatables/i18n/English.json")"
+                },
+                "dom": '<"flex flex-col md:flex-row justify-between items-center mb-4"Bf>rt<"flex flex-col md:flex-row justify-between items-center mt-4"ip>',
+                "buttons": [
+                    {
+                        extend: 'excelHtml5',
+                        className: 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors',
+                        text: '<i class="fas fa-file-excel mr-2"></i>Export Excel'
+                    }
+                ],
+                "initComplete": function() {
+                    $('.dt-button').removeClass('dt-button');
+                }
+            });
+        });
+
+        function viewDetails(poNo) {
+            const modal = document.getElementById('detailModal');
+            const content = document.getElementById('modalContent');
+            
+            // Validate modal elements exist
+            if(!modal || !content) return;
+
+            // Show modal and loading state
+            modal.classList.remove('hidden');
+            content.innerHTML = '<div class="flex justify-center py-10"><i class="fas fa-spinner fa-spin text-4xl text-primary-200"></i></div>';
+            
+            // Fetch details
+            fetch(`@Url.Action("GetDetails", "Monitor")?id=${poNo}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
+                .then(html => {
+                    content.innerHTML = html;
+                })
+                .catch(error => {
+                    content.innerHTML = `<div class="text-center text-red-500 py-4"><i class="fas fa-exclamation-circle text-2xl mb-2"></i><p>Error loading details.</p></div>`;
+                    console.error('Error:', error);
+                });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detailModal');
+            if(modal) modal.classList.add('hidden');
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(event) {
+            if(event.key === "Escape") {
+                closeModal();
+            }
+        });
+    </script>
+}

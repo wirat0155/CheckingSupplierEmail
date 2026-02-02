@@ -1,80 +1,265 @@
 ﻿@using System.Security.Claims;
+@inject CheckingSupplierEmail.Repositories.EmployeeRepository _empRepo
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-50">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PUR Vendor Portal</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13ebrCbx7vH6e3sH7g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>@ViewData["Title"] - Purchase Portal</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
+    
+    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS -->
+    <script src="~/lib/tailwindcss/tailwindcss.js" asp-append-version="true"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7', // Skyblue-600 (Main)
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link href="~/lib/sweetalert2/sweetalert2.min.css" rel="stylesheet" asp-append-version="true" />
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-            <div class="container">
-                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="fas fa-truck-moving me-2"></i>
-                    <span class="fw-bold">PUR Vendor Portal</span>
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
-                        aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarContent">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Vendor" asp-action="vIndex"><i class="fas fa-list-alt me-1"></i> Vendor</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Email" asp-action="vSetEmail"><i class="fas fa-envelope me-1"></i> Config Email</a>
-                        </li>
-                    </ul>
-                    <ul class="navbar-nav">
-                        @if (User.Identity.IsAuthenticated)
-                        {
-                            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                            <li class="nav-item d-flex align-items-center me-2">
-                                <span class="nav-link text-white-50">
-                                    <i class="fas fa-user-circle me-1"></i> Welcome, <span class="fw-bold text-white">@userId</span>!
-                                </span>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link btn btn-outline-light" asp-area="" asp-controller="Auth" asp-action="Logout">
-                                    <i class="fas fa-sign-out-alt me-1"></i> Logout
-                                </a>
-                            </li>
+<body class="flex flex-col h-full">
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" role="navigation">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a class="flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors" href="#">
+                            <img src="~/images/logo.png" alt="Purchase Staff Logo" class="h-10 w-10 transition-transform hover:scale-105" />
+                            <span class="font-bold text-xl tracking-tight">Purchase Portal</span>
+                        </a>
+                    </div>
+                    <!-- Desktop Menu -->
+                    <div class="hidden sm:ml-8 sm:flex sm:space-x-8">
+                        @{
+                            var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+                            var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+                            string GetLinkClass(string controller)
+                            {
+                                return currentController == controller
+                                    ? "inline-flex items-center px-1 pt-1 border-b-2 border-primary-500 text-sm font-medium text-gray-900 transition-all duration-200"
+                                    : "inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-all duration-200";
+                            }
                         }
-                        @*else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link btn btn-outline-light" asp-area="" asp-controller="Auth" asp-action="vLogin">
-                                    <i class="fas fa-sign-in-alt me-1"></i> Login
+                        <a asp-area="" asp-controller="Vendor" asp-action="vIndex" 
+                           class="@GetLinkClass("Vendor")">
+                            <i class="fas fa-list-alt mr-2"></i> Vendor
+                        </a>
+                        <a asp-area="" asp-controller="Monitor" asp-action="vIndex" 
+                           class="@GetLinkClass("Monitor")">
+                            <i class="fas fa-desktop mr-2"></i> PO Monitor
+                        </a>
+                        <a asp-area="" asp-controller="MonitorPR" asp-action="vIndex" 
+                           class="@GetLinkClass("MonitorPR")">
+                            <i class="fas fa-search-dollar mr-2"></i> Monitor PR
+                        </a>
+                        <a asp-area="" asp-controller="Email" asp-action="vSetEmail" 
+                           class="@GetLinkClass("Email")">
+                            <i class="fas fa-envelope mr-2"></i> Config Email
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Side Menu -->
+                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity.Name;
+                        var userInfo = await _empRepo.GetByEmpno(userId);
+                        var displayText = userInfo != null ? $"{userInfo.empno} : {userInfo.empnameeng}" : userId;
+
+                         <div class="relative ml-3 user-dropdown-container">
+                             <div>
+                                <button type="button" class="flex max-w-xs items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+                                    <span class="sr-only">Open user menu</span>
+                                    <span class="text-sm text-gray-700 font-medium flex items-center bg-gray-50 px-3 py-2 rounded-full border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-all shadow-sm">
+                                        <i class="fas fa-user-circle mr-2 text-primary-600 text-lg"></i> 
+                                        @displayText
+                                        <i class="fas fa-chevron-down ml-2 text-xs text-gray-400"></i>
+                                    </span>
+                                </button>
+                             </div>
+                             <!-- Dropdown menu -->
+                             <div class="hidden absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none user-dropdown-menu transform opacity-0 scale-95 transition-all duration-200 ease-out" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+                                <a asp-area="" asp-controller="Auth" asp-action="Logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors flex items-center" role="menuitem" tabindex="-1">
+                                    <i class="fas fa-sign-out-alt mr-3 text-gray-400"></i> Sign out
                                 </a>
-                            </li>
-                        }*@
-                    </ul>
+                             </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="-mr-2 flex items-center sm:hidden">
+                    <button type="button" class="mobile-menu-button inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
                 </div>
             </div>
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - PUR Vendor Portal
+        <!-- Mobile Menu (Hidden by default) -->
+        <div class="sm:hidden hidden mobile-menu bg-white border-t border-gray-100" id="mobile-menu">
+            <div class="pt-2 pb-3 space-y-1">
+                @{
+                    string GetMobileLinkClass(string controller)
+                    {
+                        return currentController == controller
+                           ? "bg-primary-50 border-primary-500 text-primary-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                           : "border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium";
+                    }
+                }
+                <a asp-area="" asp-controller="Vendor" asp-action="vIndex" 
+                   class="@GetMobileLinkClass("Vendor")">
+                    <i class="fas fa-list-alt mr-2"></i> Vendor
+                </a>
+                <a asp-area="" asp-controller="Monitor" asp-action="vIndex" 
+                   class="@GetMobileLinkClass("Monitor")">
+                    <i class="fas fa-desktop mr-2"></i> PO Monitor
+                </a>
+                <a asp-area="" asp-controller="MonitorPR" asp-action="vIndex" 
+                   class="@GetMobileLinkClass("MonitorPR")">
+                    <i class="fas fa-search-dollar mr-2"></i> Monitor PR
+                </a>
+                <a asp-area="" asp-controller="Email" asp-action="vSetEmail" 
+                   class="@GetMobileLinkClass("Email")">
+                    <i class="fas fa-envelope mr-2"></i> Config Email
+                </a>
+            </div>
+            @if (User.Identity.IsAuthenticated)
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity.Name;
+                var userInfo = await _empRepo.GetByEmpno(userId);
+                var displayText = userInfo != null ? $"{userInfo.empno} : {userInfo.empnameeng}" : userId;
+
+                <div class="pt-4 pb-4 border-t border-gray-200">
+                    <div class="flex items-center px-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-circle text-3xl text-gray-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-base font-medium text-gray-800">@displayText</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1">
+                        <a asp-area="" asp-controller="Auth" asp-action="Logout" 
+                           class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                            Sign out
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </header>
+
+    <main role="main" class="flex-grow w-full @(ViewData["FullWidth"] as bool? == true ? "" : "max-w-7xl mx-auto") px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
+        @RenderBody()
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-gray-500">
+                &copy; 2025 - <span class="font-semibold text-primary-600">Purchase Portal</span>. All rights reserved.
+            </p>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Removed Bootstrap JS -->
     <script src="~/lib/sweetalert2/sweetalert2.all.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+     <!-- Simple Mobile Menu Script & User Dropdown Script -->
+     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu
+            const btn = document.querySelector('.mobile-menu-button');
+            const menu = document.querySelector('.mobile-menu');
+
+            if(btn && menu) {
+                btn.addEventListener('click', () => {
+                    menu.classList.toggle('hidden');
+                });
+            }
+
+            // User Dropdown
+            const userMenuBtn = document.getElementById('user-menu-button');
+            const userDropdown = document.querySelector('.user-dropdown-menu');
+
+            if (userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    const isHidden = userDropdown.classList.contains('hidden');
+                    
+                    if (isHidden) {
+                        userDropdown.classList.remove('hidden');
+                        // Small timeout to allow removing hidden before adding opacity for transition
+                        requestAnimationFrame(() => {
+                            userDropdown.classList.remove('opacity-0', 'scale-95');
+                            userDropdown.classList.add('opacity-100', 'scale-100');
+                        });
+                    } else {
+                        userDropdown.classList.remove('opacity-100', 'scale-100');
+                        userDropdown.classList.add('opacity-0', 'scale-95');
+                        setTimeout(() => {
+                             userDropdown.classList.add('hidden');
+                        }, 200); // match duration
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!userDropdown.classList.contains('hidden') && !userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('opacity-100', 'scale-100');
+                        userDropdown.classList.add('opacity-0', 'scale-95');
+                         setTimeout(() => {
+                             userDropdown.classList.add('hidden');
+                        }, 200);
+                    }
+                });
+            }
+        });
+     </script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -4,70 +4,68 @@
     ViewData["Title"] = "Vendor Email Error Report";
 }
 
-<div class="container-fluid py-4">
-    <h1 class="h3 mb-4 text-gray-800">รายงาน Vendor ที่มีอีเมลผิดปกติ</h1>
+<div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-primary-500 pl-4">รายงาน Vendor ที่มีอีเมลผิดปกติ</h1>
 
-    <div class="row">
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card bg-danger text-white shadow">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col me-2">
-                            <div class="text-xs fw-bold text-uppercase mb-1">
-                                Vendor ที่มีอีเมลไม่ถูกต้อง
-                            </div>
-                            <div class="h5 mb-0 fw-bold">
-                                @Model.Count()
-                            </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-red-500 text-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">
+                            Vendor ที่มีอีเมลไม่ถูกต้อง
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        <div class="text-3xl font-bold">
+                            @Model.Count()
                         </div>
+                    </div>
+                    <div class="bg-white/20 p-3 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 fw-bold text-primary">รายการ Vendor ที่ต้องแก้ไข</h6>
+    <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-100">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h6 class="font-bold text-primary-700">รายการ Vendor ที่ต้องแก้ไข</h6>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="vendorErrorTable" width="100%" cellspacing="0">
-                    <thead class="bg-light">
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500" id="vendorErrorTable">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
-                            <th>รหัส Vendor</th>
-                            <th>ชื่อ Vendor</th>
-                            <th>อีเมล PO</th>
-                            <th>เหตุผล</th>
+                            <th class="px-6 py-3">รหัส Vendor</th>
+                            <th class="px-6 py-3">ชื่อ Vendor</th>
+                            <th class="px-6 py-3">อีเมล PO</th>
+                            <th class="px-6 py-3">เหตุผล</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-gray-100">
                         @foreach (var item in Model)
                         {
-                            <tr>
-                                <td>@item.VEN_VendorID</td>
-                                <td>@item.VEN_POName</td>
-                                <td>
+                            <tr class="bg-white hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@item.VEN_VendorID</td>
+                                <td class="px-6 py-4">@item.VEN_POName</td>
+                                <td class="px-6 py-4">
                                     @if (!string.IsNullOrEmpty(item.VEN_POEmail))
                                     {
-                                        @item.VEN_POEmail
+                                        <span class="text-gray-700">@item.VEN_POEmail</span>
                                     }
                                     else
                                     {
-                                        <span class="text-muted fst-italic">-</span>
+                                        <span class="text-gray-400 italic">-</span>
                                     }
                                 </td>
-                                <td>
+                                <td class="px-6 py-4">
                                     @if (!string.IsNullOrEmpty(item.Reason))
                                     {
-                                        <span class="text-danger fw-bold">@item.Reason</span>
+                                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded border border-red-200">@item.Reason</span>
                                     }
                                     else
                                     {
-                                        <span class="text-success">N/A</span>
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded border border-green-200">N/A</span>
                                     }
                                 </td>
                             </tr>
@@ -80,16 +78,38 @@
 </div>
 
 @section Scripts {
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <!-- Using generic DataTables CSS/JS instead of Bootstrap version -->
+    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+    
+    <!-- Custom CSS for DataTables to match Tailwind -->
+    <style>
+        .dataTables_wrapper .dataTables_length select {
+            padding-right: 2rem;
+            background-image: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+        }
+        table.dataTable.no-footer {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #0ea5e9;
+            color: white !important;
+            border: 1px solid #0ea5e9;
+        }
+    </style>
 
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-
     <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
     <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
 
     <script>
@@ -103,16 +123,18 @@
                 "ordering": true,
                 "info": true,
                 "searching": true,
-                "dom": 'Bfrtip', // เพิ่มส่วนนี้เพื่อเปิดใช้งาน Buttons
+                "dom": '<"flex flex-col md:flex-row justify-between items-center mb-4"Bf>rt<"flex flex-col md:flex-row justify-between items-center mt-4"ip>',
                 "buttons": [
-                    'excelHtml5' // เพิ่มส่วนนี้เพื่อสร้างปุ่ม Export Excel
-                ]
-            });
-
-            // Initialize Tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
+                    {
+                        extend: 'excelHtml5',
+                        className: 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors',
+                        text: '<i class="fas fa-file-excel mr-2"></i>Export Excel'
+                    }
+                ],
+                "initComplete": function() {
+                    // Remove default button classes provided by DataTables if needed
+                    $('.dt-button').removeClass('dt-button');
+                }
             });
         });
     </script>
