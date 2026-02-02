@@ -93,6 +93,85 @@ namespace CheckingSupplierEmail.Repositories
                 )";
             }
 
+            // Special handling for Approved Amount sorting (Data from another DB)
+            if (sortColumn == "UICTAmount")
+            {
+                // Fetch ALL matching records (no paging yet)
+                string allRecordsSql = $@"
+                    WITH CTE_Data AS (
+                        {baseQuery}
+                    )
+                    SELECT * FROM CTE_Data
+                    WHERE 1=1 {whereClause}";
+
+                var pAll = new
+                {
+                    searchValue = $"%{searchValue}%",
+                    startDate,
+                    endDate
+                };
+
+                var allData = await _dapper.Query<MonitorPRViewModel>("E", allRecordsSql, pAll, commandTimeout: 0);
+                var allDataList = allData.ToList();
+
+                // Join with UICT Data
+                if (allDataList.Any())
+                {
+                    var prNumbers = allDataList.Select(x => x.PORQ_RequisitionNumber).Distinct().ToList();
+                    string uictSql = "SELECT prno, amount FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
+                    var uictData = await _dapper.Query<dynamic>("2", uictSql, new { prNumbers });
+
+                    foreach (var item in allDataList)
+                    {
+                        var uictItem = uictData.FirstOrDefault(x => x.prno == item.PORQ_RequisitionNumber);
+                        if (uictItem != null)
+                        {
+                            item.UICTAmount = (decimal?)uictItem.amount;
+                        }
+                    }
+                }
+
+                int totalRecs = allDataList.Count;
+                int filteredRecs = totalRecs; // Since we fetched with filter applied
+
+                // Sort in Memory
+                if (sortDirection.ToUpper() == "ASC")
+                {
+                    allDataList = allDataList.OrderBy(x => x.UICTAmount).ToList();
+                }
+                else
+                {
+                    allDataList = allDataList.OrderByDescending(x => x.UICTAmount).ToList();
+                }
+
+                // Page in Memory
+                var pagedData = allDataList.Skip(start).Take(length).ToList();
+
+                // Re-calculate Total Records (unfiltered) if search is active
+                int totalRecsAll = totalRecs;
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    // Recalculate Total Records if searching
+                     var pCount = new
+                    {
+                        start,
+                        length,
+                        searchValue = $"%{searchValue}%",
+                        startDate,
+                        endDate
+                    };
+                    string totalRecordsSqlCount = $@"
+                        WITH CTE_Data AS (
+                            {baseQuery}
+                        )
+                        SELECT COUNT(*) FROM CTE_Data OPTION (RECOMPILE)";
+
+                    totalRecsAll = await _dapper.ExecuteScalar<int>("E", totalRecordsSqlCount, pCount, commandTimeout: 0);
+                }
+
+                return (pagedData, totalRecsAll, filteredRecs);
+            }
+
             // CTE with ROW_NUMBER for paging (Compatible with older SQL Server)
             string sql = $@"
                 WITH CTE_Data AS (
