@@ -110,6 +110,53 @@
                 $('html, body').animate({scrollTop:0}, 300);
             });
 
+            function formatRelativeTime(data, type, row) {
+                if (!data) return "";
+                
+                // For sorting or filtering, return the raw data just like the original date
+                if (type === 'sort' || type === 'type') {
+                    return data;
+                }
+                
+                var date = new Date(data);
+                
+                // If invalid date
+                if (isNaN(date.getTime())) return data;
+
+                if (type === 'filter') {
+                     return date.toLocaleString('en-GB');
+                }
+
+                // Current time
+                var now = new Date();
+                var diffMs = now - date;
+                var diffMins = Math.floor(diffMs / 60000);
+                var diffHours = Math.floor(diffMs / 3600000);
+                
+                var fullDateStr = date.toLocaleString('en-GB'); // dd/mm/yyyy, hh:mm:ss
+
+                // Logic:
+                // < 1 hour (60 mins) -> show X minutes ago
+                // < 1 day (24 hours) -> show X hours ago
+                // >= 1 day -> show full date
+                
+                if (diffMins < 60 && diffMins >= 0) {
+                    var timeStr = diffMins + " minutes ago";
+                    // Avoid "0 minutes ago" or "1 minutes ago" looking weird if you care, but "0 minutes ago" is technically correct for just now
+                    if (diffMins <= 1) timeStr = "Just now";
+                    else timeStr = diffMins + " minutes ago";
+
+                    return '<span title="' + fullDateStr + '" class="cursor-help border-b border-dotted border-gray-400">' + timeStr + '</span>';
+                } else if (diffHours < 24 && diffHours >= 0) {
+                    var timeStr = diffHours + " hours ago";
+                    if (diffHours === 1) timeStr = "1 hour ago";
+                    
+                    return '<span title="' + fullDateStr + '" class="cursor-help border-b border-dotted border-gray-400">' + timeStr + '</span>';
+                } else {
+                    return fullDateStr;
+                }
+            }
+
             var table = $('#monitorPRTable').DataTable({
                 "processing": true,
                 "serverSide": true,
@@ -214,18 +261,16 @@
                         "data": "porQ_DateSubmitted", 
                         "name": "PORQ_DateSubmitted", 
                         "autoWidth": true,
-                        "render": function(data) {
-                            if (data) return new Date(data).toLocaleString('en-GB'); // dd/mm/yyyy, hh:mm:ss
-                            return "";
+                        "render": function(data, type, row) {
+                            return formatRelativeTime(data, type, row);
                         }
                     },
                     { 
                         "data": "porQ_LastChangeDate", 
                         "name": "PORQ_LastChangeDate", 
                         "autoWidth": true,
-                        "render": function(data) {
-                            if (data) return new Date(data).toLocaleString('en-GB');
-                            return "";
+                        "render": function(data, type, row) {
+                            return formatRelativeTime(data, type, row);
                         }
                     },
                     { 

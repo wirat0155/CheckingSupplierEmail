@@ -55,7 +55,7 @@
                             <th class="px-6 py-3">PO No.</th>
                             <th class="px-6 py-3">Send Date</th>
                             <th class="px-6 py-3">Send By</th>
-                            <th class="px-6 py-3">Read By</th>
+                            <th class="px-6 py-3">Read Date</th>
                             <th class="px-6 py-3">Status</th>
                             <th class="px-6 py-3 text-center">Action</th>
                         </tr>
@@ -65,11 +65,15 @@
                         {
                             <tr class="bg-white hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 font-mono font-medium text-primary-600">@item.PoNo</td>
-                                <td class="px-6 py-4">@item.SendDate?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                <td class="px-6 py-4">
+                                    <span class="hidden">@item.SendDate?.ToString("yyyy-MM-ddTHH:mm:ss")</span>
+                                    @item.SendDate?.ToString("dd/MM/yyyy HH:mm:ss")
+                                </td>
                                 <td class="px-6 py-4">@item.SendBy</td>
                                 <td class="px-6 py-4">
                                     @if (item.ReadDate.HasValue)
                                     {
+                                         <span class="hidden">@item.ReadDate?.ToString("yyyy-MM-ddTHH:mm:ss")</span>
                                          <span class="text-green-700 font-medium">@item.ReadDate?.ToString("dd/MM/yyyy HH:mm:ss")</span>
                                     }
                                     else
@@ -181,6 +185,66 @@
     <script type="text/javascript" src="~/lib/datatables/js/buttons.html5.min.js" asp-append-version="true"></script>
 
     <script>
+        function formatRelativeTime(data, type, row) {
+            if (!data) return "";
+            
+            // For sorting or type detection, we try to extract the ISO date hidden in the span
+            // content might be: <span class="hidden">2023-01-01T12:00:00</span>01/01/2023 12:00:00
+            
+            // Extract content inside <span class="hidden">...</span>
+            var isoMatch = data.match(/<span class="hidden">([^<]+)<\/span>/);
+            var dateStr = isoMatch ? isoMatch[1] : null;
+
+            if (!dateStr) {
+                // Try to parse data directly if it looks like a date string (fallback)
+                // But mostly we expect the hidden span for our date columns
+                return data;
+            }
+            
+            if (type === 'sort' || type === 'type') {
+                return dateStr;
+            }
+            
+            var date = new Date(dateStr);
+            if (isNaN(date.getTime())) return data;
+
+            // Current time
+            var now = new Date();
+            var diffMs = now - date;
+            var diffMins = Math.floor(diffMs / 60000);
+            var diffHours = Math.floor(diffMs / 3600000);
+            
+            var fullDateStr = date.toLocaleString('en-GB'); 
+
+            if (diffMins < 60 && diffMins >= 0) {
+                var timeStr = diffMins + " minutes ago";
+                if (diffMins <= 1) timeStr = "Just now";
+                else timeStr = diffMins + " minutes ago";
+
+                return '<span title="' + fullDateStr + '" class="cursor-help border-b border-dotted border-gray-400">' + timeStr + '</span>';
+            } else if (diffHours < 24 && diffHours >= 0) {
+                var timeStr = diffHours + " hours ago";
+                if (diffHours === 1) timeStr = "1 hour ago";
+                
+                return '<span title="' + fullDateStr + '" class="cursor-help border-b border-dotted border-gray-400">' + timeStr + '</span>';
+            } else {
+                return fullDateStr; // Or better, the original display part of the HTML to preserve styling?
+                // But simpler to just return the formatted date string here, matching the other page style.
+                // However, the "Read Date" has text-green-700 class in the original HTML.
+                // If we return just text, we lose the class for > 1 day.
+                
+                // Let's return the fullDateStr but with the original styling if possible.
+                // Actually, DataTables render replaces the content. 
+                // If I want to keep the styling, I should reconstruct it.
+                // For "Read Date", the original was <span class="text-green-700 font-medium">...</span>
+                // So I can wrap it again.
+                // But "Send Date" was plain text.
+                
+                // Let's just return the standard localized string, consistent with Monitor PR.
+                return fullDateStr; 
+            }
+        }
+
         $(document).ready(function () {
             // Quick Date Picker Logic
             const $quickDate = $('#quickDate');
@@ -233,6 +297,40 @@
 
             $('#poLogTable').DataTable({
                 "order": [[1, "desc"]], // Default sort by Send Date Desc
+                "columns": [
+                    null, // PO No
+                    { 
+                        "render": function(data, type, row) {
+                             // Send Date
+                             return formatRelativeTime(data, type, row);
+                        }
+                    },
+                    null, // Send By
+                    { 
+                        "render": function(data, type, row) {
+                             // Read Date
+                             // If data says "Not read yet" (no hidden span or specific text), formatRelativeTime returns it as is.
+                             // But we need to handle the styling for the "Read" case if formatRelativeTime returns a plain date.
+                             
+                             var res = formatRelativeTime(data, type, row);
+                             // If it was formatted to relative time (contains 'ago' or 'Just now'), it has its own span.
+                             // If it returned fullDateStr (plain text), it lost the green color.
+                             // But formatRelativeTime logic above returns just fullDateStr for > 1 day.
+                             
+                             // Check if it's the "Not read yet" case
+                             if (data.indexOf('Not read yet') !== -1) return data;
+                             
+                             // If relative time (has html tag) return as is
+                             if (res.indexOf('<span') !== -1) return res;
+                             
+                             // If it is > 1 day, it returns plain date string. We might want to re-apply green color?
+                             // The original was text-green-700.
+                             return '<span class="text-green-700 font-medium">' + res + '</span>';
+                        }
+                    },
+                    null, // Status
+                    null  // Action
+                ],
                 "language": {
                     "url": "@Url.Content("~/lib/datatables/i18n/English.json")"
                 },
