@@ -19,9 +19,10 @@ namespace CheckingSupplierEmail.Controllers
         {
             _context = context;
         }
-        public async Task<IActionResult> vIndex()
+        public async Task<IActionResult> vIndex(string emailFilter = "invalid")
         {
             var ls_vendor = await _context.VEN.Where(e => e.VEN_StatusCode == "Active").ToListAsync();
+            List<VEN> ls_valid_vendor = new List<VEN>();
             List<VEN> ls_invalid_vendor = new List<VEN>();
             bool isValidEmail;
 
@@ -62,12 +63,39 @@ namespace CheckingSupplierEmail.Controllers
                     }
                 }
 
-                if (!isValidEmail)
+                if (isValidEmail)
+                {
+                    ls_valid_vendor.Add(obj_vendor);
+                }
+                else
                 {
                     ls_invalid_vendor.Add(obj_vendor);
                 }
             }
-            return View(ls_invalid_vendor);
+
+            // Pass filter value to view for maintaining selected state
+            ViewBag.EmailFilter = emailFilter;
+            ViewBag.ValidCount = ls_valid_vendor.Count;
+            ViewBag.InvalidCount = ls_invalid_vendor.Count;
+            ViewBag.TotalCount = ls_vendor.Count;
+
+            // Return filtered list based on emailFilter parameter
+            List<VEN> result;
+            switch (emailFilter?.ToLower())
+            {
+                case "valid":
+                    result = ls_valid_vendor;
+                    break;
+                case "all":
+                    result = ls_vendor;
+                    break;
+                case "invalid":
+                default:
+                    result = ls_invalid_vendor;
+                    break;
+            }
+
+            return View(result);
         }
     }
 }
