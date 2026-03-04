@@ -41,7 +41,7 @@
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/wirat0155/CheckingSupplierEmail.git
+    git clone https://github.com/wirat0155/PurchasePortal.git
     ```
 2.  **ตั้งค่าฐานข้อมูล**
     - ตรวจสอบและแก้ไข `appsettings.json` ให้ Connection Strings ชี้ไปยังฐานข้อมูล ERP และฐานข้อมูลที่ถูกต้องของคุณ
