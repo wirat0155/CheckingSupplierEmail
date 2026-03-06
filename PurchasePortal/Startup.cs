@@ -95,6 +95,7 @@ namespace PurchasePortal
             services.AddScoped(typeof(EmployeeRepository));
             services.AddScoped(typeof(POLogRepository));
             services.AddScoped(typeof(MonitorPRRepository));
+            services.AddScoped(typeof(ConvertPORepository));
             #endregion
         }
 

@@ -18,3 +18,74 @@
 
 /* Custom overwrites can be added here if Tailwind utilities aren't enough */
 /* Keeping it minimal to rely on Tailwind classes */
+
+/* DataTables Tailwind Styling */
+.dataTables_wrapper {
+    padding: 0;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 1rem;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    @apply px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm;
+    margin: 0 0.5rem;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    @apply px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm;
+    margin-left: 0.5rem;
+}
+
+.dataTables_wrapper .dataTables_info {
+    @apply text-sm text-gray-600;
+    padding-top: 1rem;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: 1rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    @apply px-3 py-2 text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50;
+    margin: 0 2px;
+    border-radius: 0.375rem;
+    cursor: pointer;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    @apply bg-primary-600 text-white border-primary-600 hover:bg-primary-700;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    @apply opacity-50 cursor-not-allowed hover:bg-white;
+}
+
+table.dataTable thead th {
+    @apply bg-gray-50 text-gray-700 font-semibold;
+}
+
+table.dataTable tbody td {
+    @apply text-sm text-gray-900;
+    padding: 0.75rem 1rem;
+}
+
+table.dataTable tbody tr:hover {
+    @apply bg-gray-50;
+}
+
+table.dataTable.no-footer {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+
+/* Filter Buttons */
+.filter-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.filter-btn:active {
+    transform: scale(0.98);
+}
