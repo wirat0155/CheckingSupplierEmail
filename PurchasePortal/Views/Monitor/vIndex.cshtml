@@ -49,7 +49,7 @@
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="p-4">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500" id="poLogTable">
+                <table class="w-full text-sm text-left text-gray-500 stripe hover" id="poLogTable">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
                             <th class="px-6 py-3">PO No.</th>
@@ -176,6 +176,19 @@
             background: #0ea5e9;
             color: white !important;
             border: 1px solid #0ea5e9;
+        }
+        /* DataTable Stripe and Hover Styles */
+        table.dataTable.stripe tbody tr.odd,
+        table.dataTable.display tbody tr.odd {
+            background-color: #f9fafb;
+        }
+        table.dataTable.hover tbody tr:hover,
+        table.dataTable.display tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        table.dataTable.stripe tbody tr.even,
+        table.dataTable.display tbody tr.even {
+            background-color: #ffffff;
         }
     </style>
 

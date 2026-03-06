@@ -47,7 +47,7 @@
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="p-4">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500" id="monitorPRTable">
+                <table class="w-full text-sm text-left text-gray-500 stripe hover" id="monitorPRTable">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 w-10 text-center"><input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
@@ -104,6 +104,19 @@
         /* Full width table overrides */
         #monitorPRTable {
             width: 100% !important;
+        }
+        /* DataTable Stripe and Hover Styles */
+        table.dataTable.stripe tbody tr.odd,
+        table.dataTable.display tbody tr.odd {
+            background-color: #f9fafb;
+        }
+        table.dataTable.hover tbody tr:hover,
+        table.dataTable.display tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        table.dataTable.stripe tbody tr.even,
+        table.dataTable.display tbody tr.even {
+            background-color: #ffffff;
         }
     </style>
 
