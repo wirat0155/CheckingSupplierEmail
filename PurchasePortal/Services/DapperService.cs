@@ -2,6 +2,7 @@
 using Dapper.Contrib.Extensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
@@ -47,6 +48,13 @@ namespace PurchasePortal.Services
             using var connection = CreateConnection(dbCharacter);
             return await connection.ExecuteScalarAsync(query, param);
         }
+
+        internal async Task<T> ExecuteScalarAsync<T>(string dbCharacter, string query, object param = null)
+        {
+            using var connection = CreateConnection(dbCharacter);
+            return await connection.ExecuteScalarAsync<T>(query, param);
+        }
+
         public async Task<T> ExecuteScalar<T>(string dbCharacter, string query, object param = null, int? commandTimeout = null)
         {
             using var connection = CreateConnection(dbCharacter);

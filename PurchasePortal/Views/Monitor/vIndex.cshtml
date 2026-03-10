@@ -1,5 +1,3 @@
-@model IEnumerable<PurchasePortal.Models.DbViewModels.POLogViewModel>
-
 @{
     ViewData["Title"] = "PO Monitor";
 }
@@ -12,7 +10,7 @@
         </div>
         
         <!-- Filter Form -->
-        <form method="get" class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">
+        <form method="get" class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end" id="filterForm">
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Quick Date</label>
                 <select id="quickDate" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm">
@@ -23,21 +21,21 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Send Date Start</label>
-                <input type="date" name="startDate" value="@ViewData["StartDate"]" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm" />
+                <input type="date" name="startDate" id="startDate" value="@ViewData["StartDate"]" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm" />
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Send Date End</label>
-                <input type="date" name="endDate" value="@ViewData["EndDate"]" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm" />
+                <input type="date" name="endDate" id="endDate" value="@ViewData["EndDate"]" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm" />
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Status</label>
-                <select name="status" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm">
+                <select name="status" id="status" class="block w-full text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm">
                     <option value="ALL" selected="@(ViewData["Status"] as string == "ALL")">All Status</option>
                     <option value="S" selected="@(ViewData["Status"] as string == "S")">Sent</option>
                     <option value="R" selected="@(ViewData["Status"] as string == "R")">Read</option>
                 </select>
             </div>
-            <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium transition-colors shadow-sm">
+            <button type="button" onclick="reloadTable()" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium transition-colors shadow-sm">
                 <i class="fas fa-search mr-2"></i> Filter
             </button>
             <a href="@Url.Action("vIndex")" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors shadow-sm border border-gray-300 flex items-center">
@@ -48,66 +46,20 @@
 
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="p-4">
-            <div class="overflow-x-auto">
+            <div class="overflow-x">
                 <table class="w-full text-sm text-left text-gray-500 stripe hover" id="poLogTable">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3">PO No.</th>
-                            <th class="px-6 py-3">Send Date</th>
-                            <th class="px-6 py-3">Send By</th>
-                            <th class="px-6 py-3">Read Date</th>
-                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3" data-column="0">PO No.</th>
+                            <th class="px-6 py-3" data-column="1">Send Date</th>
+                            <th class="px-6 py-3" data-column="2">Vendor Name</th>
+                            <th class="px-6 py-3" data-column="3">Send By</th>
+                            <th class="px-6 py-3" data-column="4">Read Date</th>
+                            <th class="px-6 py-3" data-column="5">Status</th>
                             <th class="px-6 py-3 text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach (var item in Model)
-                        {
-                            <tr class="bg-white hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-medium text-primary-600">@item.PoNo</td>
-                                <td class="px-6 py-4">
-                                    <span class="hidden">@item.SendDate?.ToString("yyyy-MM-ddTHH:mm:ss")</span>
-                                    @item.SendDate?.ToString("dd/MM/yyyy HH:mm:ss")
-                                </td>
-                                <td class="px-6 py-4">@item.SendBy</td>
-                                <td class="px-6 py-4">
-                                    @if (item.ReadDate.HasValue)
-                                    {
-                                         <span class="hidden">@item.ReadDate?.ToString("yyyy-MM-ddTHH:mm:ss")</span>
-                                         <span class="text-green-700 font-medium">@item.ReadDate?.ToString("dd/MM/yyyy HH:mm:ss")</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-gray-400 italic">Not read yet</span>
-                                    }
-                                </td>
-                                <td class="px-6 py-4">
-                                    @if (item.Status == "S")
-                                    {
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                            <span class="w-2 h-2 mr-1 bg-yellow-400 rounded-full"></span> Sent
-                                        </span>
-                                    }
-                                    else if (item.Status == "R")
-                                    {
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <span class="w-2 h-2 mr-1 bg-green-400 rounded-full"></span> Read
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                            @item.Status
-                                        </span>
-                                    }
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <button onclick="viewDetails('@item.PoNo')" class="text-primary-600 hover:text-primary-900 transition-colors focus:outline-none" title="View Details">
-                                        More
-                                    </button>
-                                </td>
-                            </tr>
-                        }
                     </tbody>
                 </table>
             </div>
@@ -150,8 +102,6 @@
 </div>
 
 @section Scripts {
-    <!-- DataTables CSS/JS (Generic) -->
-    <!-- DataTables CSS/JS (Generic) -->
     <link href="~/lib/datatables/css/jquery.dataTables.min.css" rel="stylesheet" asp-append-version="true" />
     <link rel="stylesheet" type="text/css" href="~/lib/datatables/css/buttons.dataTables.min.css" asp-append-version="true">
     
@@ -177,7 +127,6 @@
             color: white !important;
             border: 1px solid #0ea5e9;
         }
-        /* DataTable Stripe and Hover Styles */
         table.dataTable.stripe tbody tr.odd,
         table.dataTable.display tbody tr.odd {
             background-color: #f9fafb;
@@ -198,71 +147,77 @@
     <script type="text/javascript" src="~/lib/datatables/js/buttons.html5.min.js" asp-append-version="true"></script>
 
     <script>
-        function formatRelativeTime(data, type, row) {
-            if (!data) return "";
-            
-            // For sorting or type detection, we try to extract the ISO date hidden in the span
-            // content might be: <span class="hidden">2023-01-01T12:00:00</span>01/01/2023 12:00:00
-            
-            // Extract content inside <span class="hidden">...</span>
-            var isoMatch = data.match(/<span class="hidden">([^<]+)<\/span>/);
-            var dateStr = isoMatch ? isoMatch[1] : null;
+        let dataTable;
 
-            if (!dateStr) {
-                // Try to parse data directly if it looks like a date string (fallback)
-                // But mostly we expect the hidden span for our date columns
-                return data;
-            }
-            
-            if (type === 'sort' || type === 'type') {
-                return dateStr;
-            }
-            
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
             var date = new Date(dateStr);
-            if (isNaN(date.getTime())) return data;
+            if (isNaN(date.getTime())) return dateStr;
+            return date.toLocaleString('en-GB');
+        }
 
-            // Current time
+        function formatRelativeTime(dateStr) {
+            if (!dateStr) return '';
+            var date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr;
+
             var now = new Date();
             var diffMs = now - date;
             var diffMins = Math.floor(diffMs / 60000);
             var diffHours = Math.floor(diffMs / 3600000);
-            
-            var fullDateStr = date.toLocaleString('en-GB'); 
+            var fullDateStr = formatDate(dateStr);
 
             if (diffMins < 60 && diffMins >= 0) {
                 var timeStr = diffMins + " minutes ago";
                 if (diffMins <= 1) timeStr = "Just now";
-                else timeStr = diffMins + " minutes ago";
-
                 return '<span title="' + fullDateStr + '" class="cursor-help border-b border-dotted border-gray-400">' + timeStr + '</span>';
             } else if (diffHours < 24 && diffHours >= 0) {
                 var timeStr = diffHours + " hours ago";
                 if (diffHours === 1) timeStr = "1 hour ago";
-                
                 return '<span title="' + fullDateStr + '" class="cursor-help border-b border-dotted border-gray-400">' + timeStr + '</span>';
-            } else {
-                return fullDateStr; // Or better, the original display part of the HTML to preserve styling?
-                // But simpler to just return the formatted date string here, matching the other page style.
-                // However, the "Read Date" has text-green-700 class in the original HTML.
-                // If we return just text, we lose the class for > 1 day.
+            }
+            return fullDateStr;
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'S') {
+                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><span class="w-2 h-2 mr-1 bg-yellow-400 rounded-full"></span> Sent</span>';
+            } else if (status === 'R') {
+                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-2 h-2 mr-1 bg-green-400 rounded-full"></span> Read</span>';
+            }
+            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">' + status + '</span>';
+        }
+
+        function checkOverdue(rowData) {
+            if (!rowData.ReadDate && rowData.SendDate) {
+                var sendDate = new Date(rowData.SendDate);
+                var today = new Date();
+                var businessDays = 0;
+                var current = new Date(sendDate);
                 
-                // Let's return the fullDateStr but with the original styling if possible.
-                // Actually, DataTables render replaces the content. 
-                // If I want to keep the styling, I should reconstruct it.
-                // For "Read Date", the original was <span class="text-green-700 font-medium">...</span>
-                // So I can wrap it again.
-                // But "Send Date" was plain text.
-                
-                // Let's just return the standard localized string, consistent with Monitor PR.
-                return fullDateStr; 
+                while (current < today) {
+                    var day = current.getDay();
+                    if (day !== 0 && day !== 6) {
+                        businessDays++;
+                    }
+                    current.setDate(current.getDate() + 1);
+                }
+                return businessDays > 3;
+            }
+            return false;
+        }
+
+        function reloadTable() {
+            if (dataTable) {
+                dataTable.ajax.reload();
             }
         }
 
         $(document).ready(function () {
             // Quick Date Picker Logic
             const $quickDate = $('#quickDate');
-            const $startDate = $('input[name="startDate"]');
-            const $endDate = $('input[name="endDate"]');
+            const $startDate = $('#startDate');
+            const $endDate = $('#endDate');
 
             function formatDate(date) {
                 let d = new Date(date),
@@ -305,45 +260,101 @@
                 $quickDate.val('last1week');
                 setDates('last1week');
             } else {
-                 $quickDate.val('custom');
+                $quickDate.val('custom');
             }
 
-            $('#poLogTable').DataTable({
-                "order": [[1, "desc"]], // Default sort by Send Date Desc
+            dataTable = $('#poLogTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "order": [[1, "desc"]],
+                "ajax": {
+                    "url": "@Url.Action("GetPOLogs", "Monitor")",
+                    "type": "GET",
+                    "data": function(d) {
+                        d.startDate = $('#startDate').val();
+                        d.endDate = $('#endDate').val();
+                        d.status = $('#status').val();
+                        d.draw = d.draw || 1;
+                        d.start = d.start || 0;
+                        d.length = d.length || 10;
+                        d.orderColumn = d.order[0]?.column || 1;
+                        d.orderDir = d.order[0]?.dir || 'desc';
+                        d.searchValue = d.search?.value || '';
+                    },
+                    "dataSrc": function(json) {
+                        json.recordsTotal = json.recordsTotal || 0;
+                        json.recordsFiltered = json.recordsFiltered || 0;
+                        return json.data || [];
+                    }
+                },
                 "columns": [
-                    null, // PO No
                     { 
+                        "data": "poNo",
+                        "name": "poNo",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    { 
+                        "data": "sendDate",
+                        "name": "sendDate",
+                        "searchable": false,
+                        "orderable": true,
                         "render": function(data, type, row) {
-                             // Send Date
-                             return formatRelativeTime(data, type, row);
+                            if (!data) return '';
+                            if (type === 'sort' || type === 'type') {
+                                return data;
+                            }
+                            return formatRelativeTime(data);
                         }
                     },
-                    null, // Send By
                     { 
+                        "data": "vendorName",
+                        "name": "vendorName",
+                        "searchable": true,
+                        "orderable": false
+                    },
+                    { 
+                        "data": "sendBy",
+                        "name": "sendBy",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    { 
+                        "data": "readDate",
+                        "name": "readDate",
+                        "searchable": false,
+                        "orderable": true,
                         "render": function(data, type, row) {
-                             // Read Date
-                             // If data says "Not read yet" (no hidden span or specific text), formatRelativeTime returns it as is.
-                             // But we need to handle the styling for the "Read" case if formatRelativeTime returns a plain date.
-                             
-                             var res = formatRelativeTime(data, type, row);
-                             // If it was formatted to relative time (contains 'ago' or 'Just now'), it has its own span.
-                             // If it returned fullDateStr (plain text), it lost the green color.
-                             // But formatRelativeTime logic above returns just fullDateStr for > 1 day.
-                             
-                             // Check if it's the "Not read yet" case
-                             if (data.indexOf('Not read yet') !== -1) return data;
-                             
-                             // If relative time (has html tag) return as is
-                             if (res.indexOf('<span') !== -1) return res;
-                             
-                             // If it is > 1 day, it returns plain date string. We might want to re-apply green color?
-                             // The original was text-green-700.
-                             return '<span class="text-green-700 font-medium">' + res + '</span>';
+                            if (!data) return '<span class="text-gray-400 italic">Not read yet</span>';
+                            if (type === 'sort' || type === 'type') {
+                                return data;
+                            }
+                            return '<span class="text-green-700 font-medium">' + formatRelativeTime(data) + '</span>';
                         }
                     },
-                    null, // Status
-                    null  // Action
+                    { 
+                        "data": "status",
+                        "name": "status",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function(data) {
+                            return getStatusBadge(data);
+                        }
+                    },
+                    {
+                        "data": "poNo",
+                        "searchable": false,
+                        "orderable": false,
+                        "render": function(data) {
+                            return '<button onclick="viewDetails(\'' + data + '\')" class="text-primary-600 hover:text-primary-900 transition-colors focus:outline-none" title="View Details">More</button>';
+                        }
+                    }
                 ],
+                "createdRow": function(row, data) {
+                    if (checkOverdue(data)) {
+                        $(row).addClass('bg-red-50');
+                    }
+                },
                 "language": {
                     "url": "@Url.Content("~/lib/datatables/i18n/English.json")"
                 },
@@ -352,7 +363,18 @@
                     {
                         extend: 'excelHtml5',
                         className: 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors',
-                        text: '<i class="fas fa-file-excel mr-2"></i>Export Excel'
+                        text: '<i class="fas fa-file-excel mr-2"></i>Export Excel',
+                        action: function(e, dt, node, config) {
+                            // Export with current filter
+                            var startDate = $('#startDate').val();
+                            var endDate = $('#endDate').val();
+                            var status = $('#status').val();
+                            var url = '@Url.Action("GetPOLogs", "Monitor")?startDate=' + startDate + 
+                                      '&endDate=' + endDate + 
+                                      '&status=' + status + 
+                                      '&start=0&length=10000&draw=1';
+                            window.location.href = url;
+                        }
                     }
                 ],
                 "initComplete": function() {
@@ -365,14 +387,11 @@
             const modal = document.getElementById('detailModal');
             const content = document.getElementById('modalContent');
             
-            // Validate modal elements exist
             if(!modal || !content) return;
 
-            // Show modal and loading state
             modal.classList.remove('hidden');
             content.innerHTML = '<div class="flex justify-center py-10"><i class="fas fa-spinner fa-spin text-4xl text-primary-200"></i></div>';
             
-            // Fetch details
             fetch(`@Url.Action("GetDetails", "Monitor")?id=${poNo}`)
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
@@ -392,7 +411,6 @@
             if(modal) modal.classList.add('hidden');
         }
 
-        // Close on Escape key
         document.addEventListener('keydown', function(event) {
             if(event.key === "Escape") {
                 closeModal();

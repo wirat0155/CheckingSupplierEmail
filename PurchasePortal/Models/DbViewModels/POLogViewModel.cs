@@ -9,5 +9,6 @@ namespace PurchasePortal.Models.DbViewModels
         public string SendBy { get; set; }
         public DateTime? ReadDate { get; set; }
         public string Status { get; set; }
+        public string VendorName { get; set; }
     }
 }
