@@ -33,11 +33,13 @@ namespace PurchasePortal.Controllers
                 var sortColumnDirection = Request.Form["order[0][dir]"].FirstOrDefault();
                 var searchValue = Request.Form["search[value]"].FirstOrDefault();
                 var month = Request.Form["month"].FirstOrDefault();
+                var onlyInvalidAmount = Request.Form["onlyInvalidAmount"].FirstOrDefault();
+                var onlyInvalidAmountBool = onlyInvalidAmount == "true" || onlyInvalidAmount == "1";
                 
                 int pageSize = length != null ? Convert.ToInt32(length) : 0;
                 int skip = start != null ? Convert.ToInt32(start) : 0;
                 
-                var data = await _repository.GetMonitorPRData(skip, pageSize, searchValue, sortColumn, sortColumnDirection, month);
+                var data = await _repository.GetMonitorPRData(skip, pageSize, searchValue, sortColumn, sortColumnDirection, month, onlyInvalidAmountBool);
                 
                 return Json(new { 
                     draw = draw, 

@@ -37,6 +37,10 @@
                 <input type="month" id="monthFilter" name="month" value="@ViewData["Month"]" class="form-input text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 shadow-sm cursor-pointer">
             </div>
             <div class="flex items-center gap-2">
+                <input type="checkbox" id="onlyInvalidAmount" name="onlyInvalidAmount" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                <label for="onlyInvalidAmount" class="text-sm font-medium text-gray-700">Only PR with Invalid Amount (Last 6 months)</label>
+            </div>
+            <div class="flex items-center gap-2">
                  <button id="adjustBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <i class="fas fa-check-double mr-2"></i>Adjust Approve Amount
                 </button>
@@ -198,6 +202,7 @@
                     "datatype": "json",
                     "data": function(d) {
                          d.month = $('#monthFilter').val();
+                         d.onlyInvalidAmount = $('#onlyInvalidAmount').is(':checked');
                     }
                 },
                 "columns": [
@@ -379,6 +384,15 @@
             // Handle Filter Change
             $('#monthFilter').on('change', function() {
                 reloadPage();
+            });
+
+            // Handle Only Invalid Amount Checkbox
+            $('#onlyInvalidAmount').on('change', function() {
+                var isChecked = $(this).is(':checked');
+                // Disable month filter when invalid amount is checked
+                $('#monthFilter').prop('disabled', isChecked);
+                // Reload table with new filter
+                table.ajax.reload();
             });
 
             // Checkbox Logic

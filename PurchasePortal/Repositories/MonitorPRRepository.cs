@@ -17,12 +17,22 @@ namespace PurchasePortal.Repositories
         }
 
         public async Task<(IEnumerable<MonitorPRViewModel> Data, int TotalRecords, int FilteredRecords)> GetMonitorPRData(
-            int start, int length, string searchValue, string sortColumn, string sortDirection, string month = null)
+            int start, int length, string searchValue, string sortColumn, string sortDirection, string month = null, bool onlyInvalidAmount = false)
         {
+            // Number of recent months to look back when onlyInvalidAmount is true
+            const int invalidAmountMonthsBack = 6;
+
             // Date Filter Logic
             DateTime? startDate = null;
             DateTime? endDate = null;
-            if (!string.IsNullOrEmpty(month))
+            if (onlyInvalidAmount)
+            {
+                // Use last N months instead of the selected month
+                var now = DateTime.Now;
+                endDate = new DateTime(now.Year, now.Month, 1).AddMonths(1); // start of next month
+                startDate = endDate.Value.AddMonths(-invalidAmountMonthsBack);
+            }
+            else if (!string.IsNullOrEmpty(month))
             {
                 if (DateTime.TryParseExact(month, "yyyy-MM", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
                 {
@@ -40,7 +50,7 @@ namespace PurchasePortal.Repositories
 
             // Base query provided by user
             string baseQuery = $@"
-                SELECT 
+                SELECT
                     PORequisition.PORQ_RequisitionNumber,
                     SUM(PORequisitionLine.PORQL_TotalCost) AS ERPAmount,
                     PORequisition.PORQ_Notes,
@@ -55,10 +65,10 @@ namespace PurchasePortal.Repositories
                 FROM PORequisition
                 INNER JOIN PORequisitionLine
                     ON PORequisition.PORQ_RecordID = PORequisitionLine.PORQL_PORQ_RecordID
-                LEFT JOIN [dbo].[EMP] e 
+                LEFT JOIN [dbo].[EMP] e
                     ON PORequisition.PORQ_EMP_RecordID_ChangedBy = e.EMP_RecordID
                 WHERE 1=1 {dateFilter}
-                GROUP BY 
+                GROUP BY
                     PORequisition.PORQ_RequisitionNumber,
                     PORequisition.PORQ_Notes,
                     PORequisition.PORQ_DateSubmitted,
@@ -83,14 +93,84 @@ namespace PurchasePortal.Repositories
             if (!string.IsNullOrEmpty(searchValue))
             {
                 whereClause += @" AND (
-                    PORQ_RequisitionNumber LIKE @searchValue OR 
+                    PORQ_RequisitionNumber LIKE @searchValue OR
                     PORQ_Notes LIKE @searchValue OR
                     PORQ_M_Department LIKE @searchValue OR
-                    PORQ_M_Division LIKE @searchValue OR 
+                    PORQ_M_Division LIKE @searchValue OR
                     PORQ_M_Remark LIKE @searchValue OR
                     PORQ_M_QuotationNo LIKE @searchValue OR
                     PORQ_M_ShipToDesc LIKE @searchValue
                 )";
+            }
+
+            // Special handling for onlyInvalidAmount: fetch all PRs, join with UICT, filter in memory
+            if (onlyInvalidAmount)
+            {
+                string allRecordsSql = $@"
+                    WITH CTE_Data AS (
+                        {baseQuery}
+                    )
+                    SELECT * FROM CTE_Data
+                    WHERE 1=1 {whereClause}";
+
+                var pAll = new
+                {
+                    searchValue = $"%{searchValue}%",
+                    startDate,
+                    endDate
+                };
+
+                var allData = await _dapper.Query<MonitorPRViewModel>("E", allRecordsSql, pAll, commandTimeout: 0);
+                var allDataList = allData.ToList();
+
+                // Fetch ALL UICT2 amounts and join in memory
+                if (allDataList.Any())
+                {
+                    var allPrNumbers = allDataList.Select(x => x.PORQ_RequisitionNumber).Distinct().ToList();
+                    string uictSql = "SELECT prno, amount FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
+                    var uictData = await _dapper.Query<dynamic>("2", uictSql, new { prNumbers = allPrNumbers });
+
+                    foreach (var item in allDataList)
+                    {
+                        var uictItem = uictData.FirstOrDefault(x => x.prno == item.PORQ_RequisitionNumber);
+                        if (uictItem != null)
+                        {
+                            item.UICTAmount = (decimal?)uictItem.amount;
+                        }
+                    }
+                }
+
+                // Filter: only PRs where both ERPAmount and UICTAmount exist but are not equal
+                var invalidList = allDataList
+                    .Where(x => x.ERPAmount != null && x.UICTAmount != null && x.ERPAmount != x.UICTAmount)
+                    .ToList();
+
+                int totalInvalid = invalidList.Count;
+
+                // Sort in memory
+                if (!string.IsNullOrEmpty(sortColumn))
+                {
+                    var prop = typeof(MonitorPRViewModel).GetProperty(sortColumn);
+                    if (prop != null)
+                    {
+                        if (sortDirection?.ToUpper() == "ASC")
+                            invalidList = invalidList.OrderBy(x => prop.GetValue(x)).ToList();
+                        else
+                            invalidList = invalidList.OrderByDescending(x => prop.GetValue(x)).ToList();
+                    }
+                    else if (sortColumn == "UICTAmount")
+                    {
+                        if (sortDirection?.ToUpper() == "ASC")
+                            invalidList = invalidList.OrderBy(x => x.UICTAmount).ToList();
+                        else
+                            invalidList = invalidList.OrderByDescending(x => x.UICTAmount).ToList();
+                    }
+                }
+
+                // Page in memory
+                var pagedInvalid = invalidList.Skip(start).Take(length).ToList();
+
+                return (pagedInvalid, totalInvalid, totalInvalid);
             }
 
             // Special handling for Approved Amount sorting (Data from another DB)
