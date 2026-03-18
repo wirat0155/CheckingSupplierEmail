@@ -127,7 +127,7 @@ namespace PurchasePortal.Repositories
                 if (allDataList.Any())
                 {
                     var allPrNumbers = allDataList.Select(x => x.PORQ_RequisitionNumber).Distinct().ToList();
-                    string uictSql = "SELECT prno, amount FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
+                    string uictSql = "SELECT prno, amount, pono FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
                     var uictData = await _dapper.Query<dynamic>("2", uictSql, new { prNumbers = allPrNumbers });
 
                     foreach (var item in allDataList)
@@ -136,6 +136,7 @@ namespace PurchasePortal.Repositories
                         if (uictItem != null)
                         {
                             item.UICTAmount = (decimal?)uictItem.amount;
+                            item.PONumber = uictItem.pono;
                         }
                     }
                 }
@@ -144,6 +145,22 @@ namespace PurchasePortal.Repositories
                 var invalidList = allDataList
                     .Where(x => x.ERPAmount != null && x.UICTAmount != null && x.ERPAmount != x.UICTAmount)
                     .ToList();
+
+                // Apply search filter on PO Number if searching
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    var searchLower = searchValue.ToLower();
+                    invalidList = invalidList.Where(x =>
+                        (x.PORQ_RequisitionNumber != null && x.PORQ_RequisitionNumber.ToLower().Contains(searchLower)) ||
+                        (x.PONumber != null && x.PONumber.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_Notes != null && x.PORQ_Notes.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_Department != null && x.PORQ_M_Department.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_Division != null && x.PORQ_M_Division.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_Remark != null && x.PORQ_M_Remark.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_QuotationNo != null && x.PORQ_M_QuotationNo.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_ShipToDesc != null && x.PORQ_M_ShipToDesc.ToLower().Contains(searchLower))
+                    ).ToList();
+                }
 
                 int totalInvalid = invalidList.Count;
 
@@ -198,7 +215,7 @@ namespace PurchasePortal.Repositories
                 if (allDataList.Any())
                 {
                     var prNumbers = allDataList.Select(x => x.PORQ_RequisitionNumber).Distinct().ToList();
-                    string uictSql = "SELECT prno, amount FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
+                    string uictSql = "SELECT prno, amount, pono FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
                     var uictData = await _dapper.Query<dynamic>("2", uictSql, new { prNumbers });
 
                     foreach (var item in allDataList)
@@ -207,8 +224,25 @@ namespace PurchasePortal.Repositories
                         if (uictItem != null)
                         {
                             item.UICTAmount = (decimal?)uictItem.amount;
+                            item.PONumber = uictItem.pono;
                         }
                     }
+                }
+
+                // Apply search filter on PO Number if searching
+                if (!string.IsNullOrEmpty(searchValue) && allDataList.Any())
+                {
+                    var searchLower = searchValue.ToLower();
+                    allDataList = allDataList.Where(x =>
+                        (x.PORQ_RequisitionNumber != null && x.PORQ_RequisitionNumber.ToLower().Contains(searchLower)) ||
+                        (x.PONumber != null && x.PONumber.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_Notes != null && x.PORQ_Notes.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_Department != null && x.PORQ_M_Department.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_Division != null && x.PORQ_M_Division.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_Remark != null && x.PORQ_M_Remark.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_QuotationNo != null && x.PORQ_M_QuotationNo.ToLower().Contains(searchLower)) ||
+                        (x.PORQ_M_ShipToDesc != null && x.PORQ_M_ShipToDesc.ToLower().Contains(searchLower))
+                    ).ToList();
                 }
 
                 int totalRecs = allDataList.Count;
@@ -297,7 +331,7 @@ namespace PurchasePortal.Repositories
             {
                 var prNumbers = dataList.Select(x => x.PORQ_RequisitionNumber).Distinct().ToList();
                 // Dapper IN clause support
-                string uictSql = "SELECT prno, amount FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
+                string uictSql = "SELECT prno, amount, pono FROM [UICT2].[dbo].[pur_po] WHERE prno IN @prNumbers";
                 
                 // Use "2" for UICT2
                 var uictData = await _dapper.Query<dynamic>("2", uictSql, new { prNumbers });
@@ -308,6 +342,7 @@ namespace PurchasePortal.Repositories
                     if (uictItem != null)
                     {
                         item.UICTAmount = (decimal?)uictItem.amount;
+                        item.PONumber = uictItem.pono;
                     }
                 }
             }
@@ -322,6 +357,25 @@ namespace PurchasePortal.Repositories
             else
             {
                 filteredRecords = await _dapper.ExecuteScalar<int>("E", filteredRecordsSql, p, commandTimeout: 0);
+            }
+
+            // Apply search filter on PO Number if searching (after getting filteredRecords from DB)
+            if (!string.IsNullOrEmpty(searchValue) && dataList.Any())
+            {
+                var searchLower = searchValue.ToLower();
+                dataList = dataList.Where(x =>
+                    (x.PORQ_RequisitionNumber != null && x.PORQ_RequisitionNumber.ToLower().Contains(searchLower)) ||
+                    (x.PONumber != null && x.PONumber.ToLower().Contains(searchLower)) ||
+                    (x.PORQ_Notes != null && x.PORQ_Notes.ToLower().Contains(searchLower)) ||
+                    (x.PORQ_M_Department != null && x.PORQ_M_Department.ToLower().Contains(searchLower)) ||
+                    (x.PORQ_M_Division != null && x.PORQ_M_Division.ToLower().Contains(searchLower)) ||
+                    (x.PORQ_M_Remark != null && x.PORQ_M_Remark.ToLower().Contains(searchLower)) ||
+                    (x.PORQ_M_QuotationNo != null && x.PORQ_M_QuotationNo.ToLower().Contains(searchLower)) ||
+                    (x.PORQ_M_ShipToDesc != null && x.PORQ_M_ShipToDesc.ToLower().Contains(searchLower))
+                ).ToList();
+                
+                // Update filtered count based on in-memory filter
+                filteredRecords = dataList.Count;
             }
 
             return (dataList, totalRecords, filteredRecords);

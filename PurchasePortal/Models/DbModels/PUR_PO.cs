@@ -18,5 +18,8 @@ namespace PurchasePortal.Models.DbModels
         public string updateuser { get; set; }
         public bool convertpoflag { get; set; }
         public DateTime? convertpodate { get; set; }
+        public bool printpoflag { get; set; }
+        public DateTime? printpodate { get; set; }
+        public string pono { get; set; }
     }
 }

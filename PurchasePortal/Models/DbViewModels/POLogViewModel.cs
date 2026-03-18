@@ -4,6 +4,7 @@ namespace PurchasePortal.Models.DbViewModels
 {
     public class POLogViewModel
     {
+        public string PrNo { get; set; }
         public string PoNo { get; set; }
         public DateTime? SendDate { get; set; }
         public string SendBy { get; set; }

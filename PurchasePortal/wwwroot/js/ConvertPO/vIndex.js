@@ -56,6 +56,7 @@ $(document).ready(function () {
             url: basePath + '/ConvertPO/GetDataTable',
             type: 'POST',
             data: function (d) {
+                // Add custom filter for convertpoflag
                 if (currentFilter !== 'all') {
                     d.convertpoflag = currentFilter;
                 }
@@ -73,13 +74,15 @@ $(document).ready(function () {
             { 
                 data: 'prno', 
                 name: 'prno',
-                autoWidth: true
+                autoWidth: true,
+                orderable: true
             },
             {
                 data: 'amount',
                 name: 'amount',
                 autoWidth: true,
                 className: 'text-right',
+                orderable: true,
                 render: function (data) {
                     return data != null ? parseFloat(data).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
                 }
@@ -88,9 +91,10 @@ $(document).ready(function () {
                 data: 'area',
                 name: 'area',
                 autoWidth: true,
+                orderable: true,
                 render: function (data, type, row) {
                     if (type === 'display') {
-                        let options = '<select class="area-dropdown px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm" data-id="' + row.id + '">';
+                        let options = '<select class="area-dropdown border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" data-id="' + row.id + '">';
                         options += '<option value="">-- เลือก Area --</option>';
                         areaOptions.forEach(function (opt) {
                             const selected = data === opt ? 'selected' : '';
@@ -106,6 +110,7 @@ $(document).ready(function () {
                 data: 'credate',
                 name: 'credate',
                 autoWidth: true,
+                orderable: true,
                 render: function (data, type, row) {
                     return formatRelativeTime(data, type, row);
                 }
@@ -113,12 +118,14 @@ $(document).ready(function () {
             { 
                 data: 'creuser', 
                 name: 'creuser',
-                autoWidth: true
+                autoWidth: true,
+                orderable: true
             },
             {
                 data: 'updatedate',
                 name: 'updatedate',
                 autoWidth: true,
+                orderable: true,
                 render: function (data, type, row) {
                     return formatRelativeTime(data, type, row);
                 }
@@ -126,24 +133,61 @@ $(document).ready(function () {
             { 
                 data: 'updateuser', 
                 name: 'updateuser',
-                autoWidth: true
+                autoWidth: true,
+                orderable: true
             },
             {
                 data: 'convertpoflag',
                 name: 'convertpoflag',
                 autoWidth: true,
+                orderable: true,
                 render: function (data) {
                     if (data) {
-                        return '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Convert แล้ว</span>';
+                        return '<span class="badge-text px-2 py-1 font-semibold rounded-full bg-green-100 text-green-800">Convert แล้ว</span>';
                     } else {
-                        return '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">ยังไม่ Convert</span>';
+                        return '<span class="badge-text px-2 py-1 font-semibold rounded-full bg-red-100 text-red-800">ยังไม่ Convert</span>';
                     }
+                }
+            },
+            {
+                data: 'pono',
+                name: 'pono',
+                autoWidth: true,
+                orderable: true,
+                render: function (data, type, row) {
+                    if (!row.convertpoflag) {
+                        return '-';
+                    }
+                    return data || '-';
                 }
             },
             {
                 data: 'convertpodate',
                 name: 'convertpodate',
                 autoWidth: true,
+                orderable: true,
+                render: function (data, type, row) {
+                    return formatRelativeTime(data, type, row);
+                }
+            },
+            {
+                data: 'printpoflag',
+                name: 'printpoflag',
+                autoWidth: true,
+                orderable: true,
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        const checked = data ? 'checked' : '';
+                        return '<input type="checkbox" class="printpo-checkbox w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 cursor-pointer" data-id="' + row.id + '" ' + checked + '>';
+                    }
+                    return data;
+                }
+            },
+            {
+                data: 'printpodate',
+                name: 'printpodate',
+                autoWidth: true,
+                orderable: true,
                 render: function (data, type, row) {
                     return formatRelativeTime(data, type, row);
                 }
@@ -247,6 +291,68 @@ $(document).ready(function () {
     // Store original value when dropdown is focused
     $('#tblConvertPO tbody').on('focus', '.area-dropdown', function () {
         $(this).data('original-value', $(this).val());
+    });
+
+    // Handle print PO checkbox change
+    $('#tblConvertPO tbody').on('change', '.printpo-checkbox', function () {
+        const checkbox = $(this);
+        const id = checkbox.data('id');
+        const printpoflag = checkbox.is(':checked');
+        const originalState = !printpoflag;
+
+        // Confirm before saving
+        Swal.fire({
+            title: 'ยืนยันการบันทึก',
+            text: 'คุณต้องการบันทึกการเปลี่ยนแปลง Print PO Flag หรือไม่?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0284c7',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'บันทึก',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Save to database
+                $.ajax({
+                    url: basePath + '/ConvertPO/UpdatePrintPOFlag',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        id: id,
+                        printPOFlag: printpoflag
+                    }),
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'สำเร็จ',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            table.ajax.reload(null, false);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ไม่สำเร็จ',
+                                text: response.message
+                            });
+                            checkbox.prop('checked', originalState);
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลได้'
+                        });
+                        checkbox.prop('checked', originalState);
+                    }
+                });
+            } else {
+                checkbox.prop('checked', originalState);
+            }
+        });
     });
 
     // Filter button click handler

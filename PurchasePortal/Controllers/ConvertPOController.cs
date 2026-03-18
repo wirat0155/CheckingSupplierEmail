@@ -118,11 +118,62 @@ namespace PurchasePortal.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdatePrintPOFlag([FromBody] UpdatePrintPOFlagRequest request)
+        {
+            try
+            {
+                string txt_user = _claimsHelper.GetUserId(User);
+                var result = await _convertPORepository.UpdatePrintPOFlagAsync(request.Id, request.PrintPOFlag, txt_user);
+
+                if (result)
+                {
+                    return Ok(new { success = true, message = "บันทึกข้อมูลสำเร็จ" });
+                }
+                else
+                {
+                    return BadRequest(new { success = false, message = "ไม่สามารถบันทึกข้อมูลได้" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> UpdatePONo()
+        {
+            try
+            {
+                var result = await _convertPORepository.UpdatePONoAsync();
+                
+                if (result)
+                {
+                    return Ok(new { success = true, message = "อัปเดต PO No. สำเร็จ" });
+                }
+                else
+                {
+                    return Ok(new { success = true, message = "ไม่มีข้อมูลที่ต้องอัปเดต" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 
     public class UpdateAreaRequest
     {
         public Guid Id { get; set; }
         public string Area { get; set; }
+    }
+
+    public class UpdatePrintPOFlagRequest
+    {
+        public Guid Id { get; set; }
+        public bool PrintPOFlag { get; set; }
     }
 }

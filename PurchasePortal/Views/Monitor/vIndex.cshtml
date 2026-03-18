@@ -1,8 +1,9 @@
 @{
     ViewData["Title"] = "PO Monitor";
+    ViewData["FullWidth"] = true;
 }
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="w-full">
     <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-primary-500 pl-4">PO Send Log</h1>
@@ -50,12 +51,13 @@
                 <table class="w-full text-sm text-left text-gray-500 stripe hover" id="poLogTable">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3" data-column="0">PO No.</th>
-                            <th class="px-6 py-3" data-column="1">Send Date</th>
-                            <th class="px-6 py-3" data-column="2">Vendor Name</th>
-                            <th class="px-6 py-3" data-column="3">Send By</th>
-                            <th class="px-6 py-3" data-column="4">Read Date</th>
-                            <th class="px-6 py-3" data-column="5">Status</th>
+                            <th class="px-6 py-3" data-column="0">PR No.</th>
+                            <th class="px-6 py-3" data-column="1">PO No.</th>
+                            <th class="px-6 py-3" data-column="2">Send Date</th>
+                            <th class="px-6 py-3" data-column="3">Vendor Name</th>
+                            <th class="px-6 py-3" data-column="4">Send By</th>
+                            <th class="px-6 py-3" data-column="5">Read Date</th>
+                            <th class="px-6 py-3" data-column="6">Status</th>
                             <th class="px-6 py-3 text-center">Action</th>
                         </tr>
                     </thead>
@@ -266,7 +268,7 @@
             dataTable = $('#poLogTable').DataTable({
                 "processing": true,
                 "serverSide": true,
-                "order": [[1, "desc"]],
+                "order": [[2, "desc"]],
                 "ajax": {
                     "url": "@Url.Action("GetPOLogs", "Monitor")",
                     "type": "GET",
@@ -277,7 +279,7 @@
                         d.draw = d.draw || 1;
                         d.start = d.start || 0;
                         d.length = d.length || 10;
-                        d.orderColumn = d.order[0]?.column || 1;
+                        d.orderColumn = d.order[0]?.column || 2;
                         d.orderDir = d.order[0]?.dir || 'desc';
                         d.searchValue = d.search?.value || '';
                     },
@@ -288,6 +290,15 @@
                     }
                 },
                 "columns": [
+                    { 
+                        "data": "prNo",
+                        "name": "prNo",
+                        "searchable": false,
+                        "orderable": false,
+                        "render": function(data) {
+                            return data || '-';
+                        }
+                    },
                     { 
                         "data": "poNo",
                         "name": "poNo",

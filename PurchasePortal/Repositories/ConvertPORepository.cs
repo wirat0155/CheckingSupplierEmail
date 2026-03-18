@@ -21,6 +21,52 @@ namespace PurchasePortal.Repositories
             _connectionString = _configuration.GetConnectionString("UICT2");
         }
 
+        public async Task<bool> UpdatePONoAsync()
+        {
+            var erpConnectionString = _configuration.GetConnectionString("ERP");
+            
+            using (var uict2Connection = new SqlConnection(_connectionString))
+            using (var erpConnection = new SqlConnection(erpConnectionString))
+            {
+                await uict2Connection.OpenAsync();
+                await erpConnection.OpenAsync();
+
+                // Get all records with null pono
+                var query = "SELECT [id], [prno] FROM [UICT2].[dbo].[pur_po] WHERE [pono] IS NULL";
+                var records = await uict2Connection.QueryAsync<dynamic>(query);
+
+                int updatedCount = 0;
+                foreach (var record in records)
+                {
+                    // Query PO number from ERP database
+                    var poQuery = @"SELECT TOP 1 [POM_PurchorderID] AS pono
+                                   FROM [iERP85].[dbo].[vw_mfc_rptPOPrint] po 
+                                   WHERE PRNbr LIKE @prno AND POI_POLineNbr = 1 
+                                   ORDER BY POM_PurchOrderDate DESC";
+                    
+                    var poResult = await erpConnection.QueryFirstOrDefaultAsync<dynamic>(poQuery, new { prno = record.prno });
+                    
+                    if (poResult != null && !string.IsNullOrEmpty(poResult.pono))
+                    {
+                        // Update pono in UICT2
+                        var updateQuery = @"UPDATE [UICT2].[dbo].[pur_po] 
+                                          SET [pono] = @pono 
+                                          WHERE [id] = @id";
+                        
+                        await uict2Connection.ExecuteAsync(updateQuery, new 
+                        { 
+                            id = record.id, 
+                            pono = poResult.pono 
+                        });
+                        
+                        updatedCount++;
+                    }
+                }
+
+                return updatedCount > 0;
+            }
+        }
+
         public async Task<(IEnumerable<PUR_PO> data, int recordsTotal, int recordsFiltered)> GetPURPOListAsync(
             int start, int length, string searchValue, string sortColumn, string sortDirection, bool? convertpoflag)
         {
@@ -45,7 +91,8 @@ namespace PurchasePortal.Repositories
                     whereClauses.Add(@"([prno] LIKE @SearchValue 
                                     OR [area] LIKE @SearchValue 
                                     OR [creuser] LIKE @SearchValue 
-                                    OR [updateuser] LIKE @SearchValue)");
+                                    OR [updateuser] LIKE @SearchValue
+                                    OR [pono] LIKE @SearchValue)");
                 }
 
                 if (whereClauses.Any())
@@ -71,7 +118,7 @@ namespace PurchasePortal.Repositories
 
                 // Get data with pagination
                 var dataQuery = $@"
-                    SELECT [id],[prno],[amount],[area],[credate],[creuser],[updatedate],[updateuser],[convertpoflag],[convertpodate]
+                    SELECT [id],[prno],[amount],[area],[credate],[creuser],[updatedate],[updateuser],[convertpoflag],[convertpodate],[printpoflag],[printpodate],[pono]
                     {baseQuery} 
                     {whereClause}
                     {orderBy}
@@ -128,6 +175,32 @@ namespace PurchasePortal.Repositories
                 {
                     Id = id,
                     Area = area,
+                    UpdateDate = DateTime.Now,
+                    UpdateUser = updateUser
+                });
+
+                return result > 0;
+            }
+        }
+
+        public async Task<bool> UpdatePrintPOFlagAsync(Guid id, bool printpoflag, string updateUser)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var query = @"UPDATE [UICT2].[dbo].[pur_po] 
+                             SET [printpoflag] = @PrintPOFlag, 
+                                 [printpodate] = @PrintPODate,
+                                 [updatedate] = @UpdateDate, 
+                                 [updateuser] = @UpdateUser
+                             WHERE [id] = @Id";
+
+                var result = await connection.ExecuteAsync(query, new
+                {
+                    Id = id,
+                    PrintPOFlag = printpoflag,
+                    PrintPODate = printpoflag ? (DateTime?)DateTime.Now : null,
                     UpdateDate = DateTime.Now,
                     UpdateUser = updateUser
                 });
