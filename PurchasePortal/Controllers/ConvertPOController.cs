@@ -163,6 +163,44 @@ namespace PurchasePortal.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> FindPONoByPRNo([FromBody] FindPONoRequest request)
+        {
+            try
+            {
+                var pono = await _convertPORepository.FindPONoByPRNoAsync(request.PRNo);
+                
+                return Ok(new { success = true, pono = pono, found = !string.IsNullOrEmpty(pono) });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateConvertPOFlag([FromBody] UpdateConvertPOFlagRequest request)
+        {
+            try
+            {
+                string txt_user = _claimsHelper.GetUserId(User);
+                var result = await _convertPORepository.UpdateConvertPOFlagAsync(request.Id, request.PONo, txt_user);
+
+                if (result)
+                {
+                    return Ok(new { success = true, message = "บันทึกข้อมูลสำเร็จ" });
+                }
+                else
+                {
+                    return BadRequest(new { success = false, message = "ไม่สามารถบันทึกข้อมูลได้" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 
     public class UpdateAreaRequest
@@ -175,5 +213,16 @@ namespace PurchasePortal.Controllers
     {
         public Guid Id { get; set; }
         public bool PrintPOFlag { get; set; }
+    }
+
+    public class FindPONoRequest
+    {
+        public string PRNo { get; set; }
+    }
+
+    public class UpdateConvertPOFlagRequest
+    {
+        public Guid Id { get; set; }
+        public string PONo { get; set; }
     }
 }

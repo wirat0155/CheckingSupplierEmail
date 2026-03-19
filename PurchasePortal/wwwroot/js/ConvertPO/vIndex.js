@@ -141,12 +141,13 @@ $(document).ready(function () {
                 name: 'convertpoflag',
                 autoWidth: true,
                 orderable: true,
-                render: function (data) {
-                    if (data) {
-                        return '<span class="badge-text px-2 py-1 font-semibold rounded-full bg-green-100 text-green-800">Convert แล้ว</span>';
-                    } else {
-                        return '<span class="badge-text px-2 py-1 font-semibold rounded-full bg-red-100 text-red-800">ยังไม่ Convert</span>';
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        const checked = data ? 'checked' : '';
+                        const disabled = data ? 'disabled' : '';
+                        return '<input type="checkbox" class="convertpo-checkbox w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 cursor-pointer" data-id="' + row.id + '" data-prno="' + row.prno + '" ' + checked + ' ' + disabled + '>';
                     }
+                    return data;
                 }
             },
             {
@@ -351,6 +352,129 @@ $(document).ready(function () {
                 });
             } else {
                 checkbox.prop('checked', originalState);
+            }
+        });
+    });
+
+    // Handle convert PO checkbox change
+    $('#tblConvertPO tbody').on('change', '.convertpo-checkbox', function () {
+        const checkbox = $(this);
+        const id = checkbox.data('id');
+        const prno = checkbox.data('prno');
+        const isChecked = checkbox.is(':checked');
+
+        // Only allow checking, not unchecking
+        if (!isChecked) {
+            checkbox.prop('checked', true);
+            return;
+        }
+
+        // Show loading
+        Swal.fire({
+            title: 'กำลังค้นหา PO No...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Find PO No by PR No
+        $.ajax({
+            url: basePath + '/ConvertPO/FindPONoByPRNo',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                prno: prno
+            }),
+            success: function (response) {
+                Swal.close();
+
+                if (response.success) {
+                    const pono = response.pono;
+                    const found = response.found;
+
+                    let confirmMessage = '';
+                    let confirmIcon = 'question';
+
+                    if (found) {
+                        confirmMessage = 'พบหมายเลข PO: ' + pono + '\nคุณต้องการบันทึกหรือไม่?';
+                        confirmIcon = 'success';
+                    } else {
+                        confirmMessage = 'ไม่พบหมายเลข PO\nคุณต้องการบันทึกหรือไม่?';
+                        confirmIcon = 'warning';
+                    }
+
+                    // Confirm before saving
+                    Swal.fire({
+                        title: 'ยืนยันการบันทึก',
+                        text: confirmMessage,
+                        icon: confirmIcon,
+                        showCancelButton: true,
+                        confirmButtonColor: '#0284c7',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'บันทึก',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Save to database
+                            $.ajax({
+                                url: basePath + '/ConvertPO/UpdateConvertPOFlag',
+                                type: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify({
+                                    id: id,
+                                    pono: pono
+                                }),
+                                success: function (response) {
+                                    if (response.success) {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'สำเร็จ',
+                                            text: response.message,
+                                            timer: 1500,
+                                            showConfirmButton: false
+                                        });
+                                        table.ajax.reload(null, false);
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'ไม่สำเร็จ',
+                                            text: response.message
+                                        });
+                                        checkbox.prop('checked', false);
+                                    }
+                                },
+                                error: function (xhr) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'เกิดข้อผิดพลาด',
+                                        text: xhr.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลได้'
+                                    });
+                                    checkbox.prop('checked', false);
+                                }
+                            });
+                        } else {
+                            checkbox.prop('checked', false);
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: response.message || 'ไม่สามารถค้นหา PO No ได้'
+                    });
+                    checkbox.prop('checked', false);
+                }
+            },
+            error: function (xhr) {
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: xhr.responseJSON?.message || 'ไม่สามารถค้นหา PO No ได้'
+                });
+                checkbox.prop('checked', false);
             }
         });
     });

@@ -67,6 +67,53 @@ namespace PurchasePortal.Repositories
             }
         }
 
+        public async Task<string> FindPONoByPRNoAsync(string prno)
+        {
+            var erpConnectionString = _configuration.GetConnectionString("ERP");
+            
+            using (var erpConnection = new SqlConnection(erpConnectionString))
+            {
+                await erpConnection.OpenAsync();
+
+                // Query PO number from ERP database
+                var poQuery = @"SELECT TOP 1 [POM_PurchorderID] AS pono
+                               FROM [iERP85].[dbo].[vw_mfc_rptPOPrint] po 
+                               WHERE PRNbr LIKE @prno AND POI_POLineNbr = 1 
+                               ORDER BY POM_PurchOrderDate DESC";
+                
+                var poResult = await erpConnection.QueryFirstOrDefaultAsync<dynamic>(poQuery, new { prno = prno });
+                
+                return poResult?.pono;
+            }
+        }
+
+        public async Task<bool> UpdateConvertPOFlagAsync(Guid id, string pono, string updateUser)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var query = @"UPDATE [UICT2].[dbo].[pur_po] 
+                             SET [convertpoflag] = 1, 
+                                 [convertpodate] = @ConvertPODate,
+                                 [pono] = @PONo,
+                                 [updatedate] = @UpdateDate, 
+                                 [updateuser] = @UpdateUser
+                             WHERE [id] = @Id";
+
+                var result = await connection.ExecuteAsync(query, new
+                {
+                    Id = id,
+                    PONo = pono,
+                    ConvertPODate = DateTime.Now,
+                    UpdateDate = DateTime.Now,
+                    UpdateUser = updateUser
+                });
+
+                return result > 0;
+            }
+        }
+
         public async Task<(IEnumerable<PUR_PO> data, int recordsTotal, int recordsFiltered)> GetPURPOListAsync(
             int start, int length, string searchValue, string sortColumn, string sortDirection, bool? convertpoflag)
         {
