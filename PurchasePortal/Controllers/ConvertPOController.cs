@@ -185,7 +185,18 @@ namespace PurchasePortal.Controllers
             try
             {
                 string txt_user = _claimsHelper.GetUserId(User);
-                var result = await _convertPORepository.UpdateConvertPOFlagAsync(request.Id, request.PONo, txt_user);
+                bool result;
+
+                if (request.IsCheckIn)
+                {
+                    // Check in: Find PO No and update
+                    result = await _convertPORepository.UpdateConvertPOFlagAsync(request.Id, request.PONo, txt_user);
+                }
+                else
+                {
+                    // Check out: Set pono to null
+                    result = await _convertPORepository.CheckOutConvertPOFlagAsync(request.Id, txt_user);
+                }
 
                 if (result)
                 {
@@ -224,5 +235,6 @@ namespace PurchasePortal.Controllers
     {
         public Guid Id { get; set; }
         public string PONo { get; set; }
+        public bool IsCheckIn { get; set; }
     }
 }

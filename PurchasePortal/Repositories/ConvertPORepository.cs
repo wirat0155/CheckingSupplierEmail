@@ -41,7 +41,7 @@ namespace PurchasePortal.Repositories
                     // Query PO number from ERP database
                     var poQuery = @"SELECT TOP 1 [POM_PurchorderID] AS pono
                                    FROM [iERP85].[dbo].[vw_mfc_rptPOPrint] po 
-                                   WHERE PRNbr LIKE @prno AND POI_POLineNbr = 1 
+                                   WHERE PRNbr LIKE @prno 
                                    ORDER BY POM_PurchOrderDate DESC";
                     
                     var poResult = await erpConnection.QueryFirstOrDefaultAsync<dynamic>(poQuery, new { prno = record.prno });
@@ -78,7 +78,7 @@ namespace PurchasePortal.Repositories
                 // Query PO number from ERP database
                 var poQuery = @"SELECT TOP 1 [POM_PurchorderID] AS pono
                                FROM [iERP85].[dbo].[vw_mfc_rptPOPrint] po 
-                               WHERE PRNbr LIKE @prno AND POI_POLineNbr = 1 
+                               WHERE PRNbr LIKE @prno
                                ORDER BY POM_PurchOrderDate DESC";
                 
                 var poResult = await erpConnection.QueryFirstOrDefaultAsync<dynamic>(poQuery, new { prno = prno });
@@ -106,6 +106,31 @@ namespace PurchasePortal.Repositories
                     Id = id,
                     PONo = pono,
                     ConvertPODate = DateTime.Now,
+                    UpdateDate = DateTime.Now,
+                    UpdateUser = updateUser
+                });
+
+                return result > 0;
+            }
+        }
+
+        public async Task<bool> CheckOutConvertPOFlagAsync(Guid id, string updateUser)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var query = @"UPDATE [UICT2].[dbo].[pur_po] 
+                             SET [convertpoflag] = 0, 
+                                 [convertpodate] = NULL,
+                                 [pono] = NULL,
+                                 [updatedate] = @UpdateDate, 
+                                 [updateuser] = @UpdateUser
+                             WHERE [id] = @Id";
+
+                var result = await connection.ExecuteAsync(query, new
+                {
+                    Id = id,
                     UpdateDate = DateTime.Now,
                     UpdateUser = updateUser
                 });

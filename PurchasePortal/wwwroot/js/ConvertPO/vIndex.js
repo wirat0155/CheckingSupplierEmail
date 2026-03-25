@@ -144,8 +144,7 @@ $(document).ready(function () {
                 render: function (data, type, row) {
                     if (type === 'display') {
                         const checked = data ? 'checked' : '';
-                        const disabled = data ? 'disabled' : '';
-                        return '<input type="checkbox" class="convertpo-checkbox w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 cursor-pointer" data-id="' + row.id + '" data-prno="' + row.prno + '" ' + checked + ' ' + disabled + '>';
+                        return '<input type="checkbox" class="convertpo-checkbox w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 cursor-pointer" data-id="' + row.id + '" data-prno="' + row.prno + '" ' + checked + '>';
                     }
                     return data;
                 }
@@ -362,121 +361,175 @@ $(document).ready(function () {
         const id = checkbox.data('id');
         const prno = checkbox.data('prno');
         const isChecked = checkbox.is(':checked');
+        const originalState = !isChecked;
 
-        // Only allow checking, not unchecking
-        if (!isChecked) {
-            checkbox.prop('checked', true);
-            return;
-        }
+        if (isChecked) {
+            // Check In: Find PO No and update
+            // Show loading
+            Swal.fire({
+                title: 'กำลังค้นหา PO No...',
+                text: 'กรุณารอสักครู่',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
-        // Show loading
-        Swal.fire({
-            title: 'กำลังค้นหา PO No...',
-            text: 'กรุณารอสักครู่',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+            // Find PO No by PR No
+            $.ajax({
+                url: basePath + '/ConvertPO/FindPONoByPRNo',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    prno: prno
+                }),
+                success: function (response) {
+                    Swal.close();
 
-        // Find PO No by PR No
-        $.ajax({
-            url: basePath + '/ConvertPO/FindPONoByPRNo',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                prno: prno
-            }),
-            success: function (response) {
-                Swal.close();
+                    if (response.success) {
+                        const pono = response.pono;
+                        const found = response.found;
 
-                if (response.success) {
-                    const pono = response.pono;
-                    const found = response.found;
+                        let confirmMessage = '';
+                        let confirmIcon = 'question';
 
-                    let confirmMessage = '';
-                    let confirmIcon = 'question';
+                        if (found) {
+                            confirmMessage = 'พบหมายเลข PO: ' + pono + '\nคุณต้องการ Check In หรือไม่?';
+                            confirmIcon = 'success';
+                        } else {
+                            confirmMessage = 'ไม่พบหมายเลข PO\nคุณต้องการ Check In หรือไม่?';
+                            confirmIcon = 'warning';
+                        }
 
-                    if (found) {
-                        confirmMessage = 'พบหมายเลข PO: ' + pono + '\nคุณต้องการบันทึกหรือไม่?';
-                        confirmIcon = 'success';
-                    } else {
-                        confirmMessage = 'ไม่พบหมายเลข PO\nคุณต้องการบันทึกหรือไม่?';
-                        confirmIcon = 'warning';
-                    }
-
-                    // Confirm before saving
-                    Swal.fire({
-                        title: 'ยืนยันการบันทึก',
-                        text: confirmMessage,
-                        icon: confirmIcon,
-                        showCancelButton: true,
-                        confirmButtonColor: '#0284c7',
-                        cancelButtonColor: '#6b7280',
-                        confirmButtonText: 'บันทึก',
-                        cancelButtonText: 'ยกเลิก'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // Save to database
-                            $.ajax({
-                                url: basePath + '/ConvertPO/UpdateConvertPOFlag',
-                                type: 'POST',
-                                contentType: 'application/json',
-                                data: JSON.stringify({
-                                    id: id,
-                                    pono: pono
-                                }),
-                                success: function (response) {
-                                    if (response.success) {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'สำเร็จ',
-                                            text: response.message,
-                                            timer: 1500,
-                                            showConfirmButton: false
-                                        });
-                                        table.ajax.reload(null, false);
-                                    } else {
+                        // Confirm before saving
+                        Swal.fire({
+                            title: 'ยืนยัน Check In',
+                            text: confirmMessage,
+                            icon: confirmIcon,
+                            showCancelButton: true,
+                            confirmButtonColor: '#0284c7',
+                            cancelButtonColor: '#6b7280',
+                            confirmButtonText: 'Check In',
+                            cancelButtonText: 'ยกเลิก'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Save to database
+                                $.ajax({
+                                    url: basePath + '/ConvertPO/UpdateConvertPOFlag',
+                                    type: 'POST',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify({
+                                        id: id,
+                                        pono: pono,
+                                        isCheckIn: true
+                                    }),
+                                    success: function (response) {
+                                        if (response.success) {
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'สำเร็จ',
+                                                text: response.message,
+                                                timer: 1500,
+                                                showConfirmButton: false
+                                            });
+                                            table.ajax.reload(null, false);
+                                        } else {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'ไม่สำเร็จ',
+                                                text: response.message
+                                            });
+                                            checkbox.prop('checked', originalState);
+                                        }
+                                    },
+                                    error: function (xhr) {
                                         Swal.fire({
                                             icon: 'error',
-                                            title: 'ไม่สำเร็จ',
-                                            text: response.message
+                                            title: 'เกิดข้อผิดพลาด',
+                                            text: xhr.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลได้'
                                         });
-                                        checkbox.prop('checked', false);
+                                        checkbox.prop('checked', originalState);
                                     }
-                                },
-                                error: function (xhr) {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'เกิดข้อผิดพลาด',
-                                        text: xhr.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลได้'
-                                    });
-                                    checkbox.prop('checked', false);
-                                }
-                            });
-                        } else {
-                            checkbox.prop('checked', false);
-                        }
-                    });
-                } else {
+                                });
+                            } else {
+                                checkbox.prop('checked', originalState);
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: response.message || 'ไม่สามารถค้นหา PO No ได้'
+                        });
+                        checkbox.prop('checked', originalState);
+                    }
+                },
+                error: function (xhr) {
+                    Swal.close();
                     Swal.fire({
                         icon: 'error',
                         title: 'เกิดข้อผิดพลาด',
-                        text: response.message || 'ไม่สามารถค้นหา PO No ได้'
+                        text: xhr.responseJSON?.message || 'ไม่สามารถค้นหา PO No ได้'
                     });
-                    checkbox.prop('checked', false);
+                    checkbox.prop('checked', originalState);
                 }
-            },
-            error: function (xhr) {
-                Swal.close();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: xhr.responseJSON?.message || 'ไม่สามารถค้นหา PO No ได้'
-                });
-                checkbox.prop('checked', false);
-            }
-        });
+            });
+        } else {
+            // Check Out: Set pono to null
+            Swal.fire({
+                title: 'ยืนยัน Check Out',
+                text: 'คุณต้องการ Check Out หรือไม่? (PO No. จะถูกลบ)',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Check Out',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Save to database
+                    $.ajax({
+                        url: basePath + '/ConvertPO/UpdateConvertPOFlag',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            id: id,
+                            pono: null,
+                            isCheckIn: false
+                        }),
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ',
+                                    text: response.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                                table.ajax.reload(null, false);
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ไม่สำเร็จ',
+                                    text: response.message
+                                });
+                                checkbox.prop('checked', originalState);
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: xhr.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลได้'
+                            });
+                            checkbox.prop('checked', originalState);
+                        }
+                    });
+                } else {
+                    checkbox.prop('checked', originalState);
+                }
+            });
+        }
     });
 
     // Filter button click handler
