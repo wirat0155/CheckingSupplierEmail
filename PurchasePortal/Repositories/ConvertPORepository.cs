@@ -41,7 +41,7 @@ namespace PurchasePortal.Repositories
                     // Query PO number from ERP database
                     var poQuery = @"SELECT TOP 1 [POM_PurchorderID] AS pono
                                    FROM [iERP85].[dbo].[vw_mfc_rptPOPrint] po 
-                                   WHERE PRNbr LIKE @prno 
+                                   WHERE PRNbr LIKE @prno AND [POM_PurchorderID] IS NOT NULL 
                                    ORDER BY POM_PurchOrderDate DESC";
                     
                     var poResult = await erpConnection.QueryFirstOrDefaultAsync<dynamic>(poQuery, new { prno = record.prno });
@@ -78,7 +78,7 @@ namespace PurchasePortal.Repositories
                 // Query PO number from ERP database
                 var poQuery = @"SELECT TOP 1 [POM_PurchorderID] AS pono
                                FROM [iERP85].[dbo].[vw_mfc_rptPOPrint] po 
-                               WHERE PRNbr LIKE @prno
+                               WHERE PRNbr LIKE @prno AND [POM_PurchorderID] IS NOT NULL 
                                ORDER BY POM_PurchOrderDate DESC";
                 
                 var poResult = await erpConnection.QueryFirstOrDefaultAsync<dynamic>(poQuery, new { prno = prno });
