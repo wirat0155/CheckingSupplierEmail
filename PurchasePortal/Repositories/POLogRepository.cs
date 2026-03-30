@@ -24,7 +24,7 @@ namespace PurchasePortal.Repositories
             int length = 10, 
             int draw = 1,
             string? searchValue = null,
-            int orderColumn = 1,
+            int orderColumn = 2,
             string orderDir = "desc")
         {
             var response = new DataTableResponse<POLogViewModel> { Draw = draw };
@@ -36,20 +36,14 @@ namespace PurchasePortal.Repositories
             // Adjust endDate to include the full day (23:59:59)
             var endDateTime = endDate.Value.Date.AddDays(1).AddSeconds(-1);
 
-            // Count total records before filtering
-            string countSql = @"
-SELECT COUNT(*)
-FROM [UICT].[dbo].[pur_polog] p
-WHERE (p.send_vendor_date BETWEEN @startDate AND @endDateTime)";
-
+            // Count total records for the date range and status before search filtering
+            string countSql = "SELECT COUNT(*) FROM [UICT].[dbo].[pur_polog] p WHERE (p.send_vendor_date BETWEEN @startDate AND @endDateTime)";
             if (!string.IsNullOrEmpty(status) && status != "ALL")
-            {
                 countSql += " AND p.[statusno] = @status";
-            }
-
+            
             response.RecordsTotal = await _dapper.ExecuteScalarAsync<int>("1", countSql, new { startDate, endDateTime, status });
 
-            // Build main query with filters
+            // Fetch all logs within the filter from UICT
             string sql = @"
 SELECT 
     p.[por_purchorderid] AS 'PoNo',
@@ -61,78 +55,34 @@ FROM [UICT].[dbo].[pur_polog] p
 WHERE (p.send_vendor_date BETWEEN @startDate AND @endDateTime)";
 
             if (!string.IsNullOrEmpty(status) && status != "ALL")
-            {
                 sql += " AND p.[statusno] = @status";
-            }
 
-            // Add search filter
-            if (!string.IsNullOrEmpty(searchValue))
+            var logs = (await _dapper.Query<POLogViewModel>("1", sql, new { startDate, endDateTime, status })).ToList();
+
+            // Fetch Vendor Name and PR Number from ERP for these logs
+            var distinctPoNos = logs.Select(l => l.PoNo).Distinct().ToList();
+            if (distinctPoNos.Any())
             {
-                sql += @" AND (
-                    p.[por_purchorderid] LIKE @searchValue OR 
-                    p.[send_by] LIKE @searchValue OR
-                    p.[statusno] LIKE @searchValue
-                )";
-            }
-
-            // Get filtered count
-            string filteredCountSql = "SELECT COUNT(*) FROM (" + sql + ") AS filtered";
-            response.RecordsFiltered = await _dapper.ExecuteScalarAsync<int>("1", filteredCountSql, 
-                new { startDate, endDateTime, status, searchValue = $"%{searchValue}%" });
-
-            // Add ordering
-            string orderColumnName = orderColumn switch
-            {
-                0 => "p.[por_purchorderid]",
-                1 => "p.[por_purchorderid]",
-                2 => "p.[send_vendor_date]",
-                3 => "p.[send_by]",
-                4 => "p.[vendor_read_date]",
-                5 => "p.[statusno]",
-                _ => "p.[send_vendor_date]"
-            };
-            sql += $" ORDER BY {orderColumnName} {orderDir} OFFSET @start ROWS FETCH NEXT @length ROWS ONLY";
-
-            var logs = (await _dapper.Query<POLogViewModel>("1", sql, new
-            {
-                startDate,
-                endDateTime,
-                status,
-                SearchValue = $"%{searchValue}%",
-                start,
-                length
-            })).ToList();
-
-            // Get unique PO numbers to fetch vendor names and PR numbers from ERP and UICT2
-            var poNos = logs.Select(l => l.PoNo).Distinct().ToList();
-            if (poNos.Any())
-            {
-                var poList = string.Join("','", poNos);
-                string vendorSql = $@"
-                    SELECT DISTINCT POM_PurchorderID AS PoNo, POM_VendorName AS VendorName
+                // To avoid large IN clause issues, we could batch but let's assume range is reasonable
+                var poListStrings = distinctPoNos.Select(id => "'" + id.Replace("'", "''") + "'");
+                var poList = string.Join(",", poListStrings);
+                
+                string erpSql = $@"
+                    SELECT DISTINCT POM_PurchorderID AS PoNo, POM_VendorName AS VendorName, PRNbr AS PrNo
                     FROM [iERP85].[dbo].[vw_mfc_rptPOPrint]
-                    WHERE POM_PurchorderID IN ('{poList}')";
+                    WHERE POM_PurchorderID IN ({poList})
+                      AND PRNbr IS NOT NULL AND POM_VendorID IS NOT NULL";
                 
-                var vendors = (await _dapper.Query<POLogViewModel>("E", vendorSql)).ToDictionary(v => v.PoNo, v => v.VendorName);
-                
-                // Fetch PR numbers from pur_po table in UICT2
-                string prSql = $@"
-                    SELECT [pono] AS PoNo, [prno] AS PrNo
-                    FROM [UICT2].[dbo].[pur_po]
-                    WHERE [pono] IN ('{poList}')";
-                
-                var prNumbers = (await _dapper.Query<POLogViewModel>("2", prSql)).ToDictionary(p => p.PoNo, p => p.PrNo);
-                
+                var erpData = (await _dapper.Query<POLogViewModel>("E", erpSql))
+                    .GroupBy(x => x.PoNo)
+                    .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
                 foreach (var log in logs)
                 {
-                    if (vendors.TryGetValue(log.PoNo, out var vendorName))
+                    if (erpData.TryGetValue(log.PoNo, out var erp))
                     {
-                        log.VendorName = vendorName;
-                    }
-                    
-                    if (prNumbers.TryGetValue(log.PoNo, out var prNo))
-                    {
-                        log.PrNo = prNo;
+                        log.VendorName = erp.VendorName;
+                        log.PrNo = erp.PrNo ?? "-";
                     }
                     else
                     {
@@ -141,28 +91,38 @@ WHERE (p.send_vendor_date BETWEEN @startDate AND @endDateTime)";
                 }
             }
 
-            // If searching, filter results by PR No. in memory (since it's from another DB)
-            if (!string.IsNullOrEmpty(searchValue) && logs.Any())
+            // Apply search filter in memory
+            var filteredLogs = logs.AsQueryable();
+            if (!string.IsNullOrEmpty(searchValue))
             {
-                var searchLower = searchValue.ToLower();
-                var filteredLogs = logs.Where(l => 
-                    (l.PrNo != null && l.PrNo.ToLower().Contains(searchLower)) ||
-                    (l.PoNo != null && l.PoNo.ToLower().Contains(searchLower)) ||
-                    (l.SendBy != null && l.SendBy.ToLower().Contains(searchLower)) ||
-                    (l.Status != null && l.Status.ToLower().Contains(searchLower)) ||
-                    (l.VendorName != null && l.VendorName.ToLower().Contains(searchLower))
-                ).ToList();
-                
-                // Update filtered count if search affects PR No.
-                if (filteredLogs.Count != logs.Count)
-                {
-                    response.RecordsFiltered = filteredLogs.Count;
-                    response.Data = filteredLogs;
-                    return response;
-                }
+                var lowerSearch = searchValue.ToLower();
+                filteredLogs = filteredLogs.Where(l => 
+                    (l.PoNo != null && l.PoNo.ToLower().Contains(lowerSearch)) ||
+                    (l.PrNo != null && l.PrNo.ToLower().Contains(lowerSearch)) ||
+                    (l.VendorName != null && l.VendorName.ToLower().Contains(lowerSearch)) ||
+                    (l.SendBy != null && l.SendBy.ToLower().Contains(lowerSearch)) ||
+                    (l.Status != null && l.Status.ToLower().Contains(lowerSearch))
+                );
             }
 
-            response.Data = logs;
+            response.RecordsFiltered = filteredLogs.Count();
+
+            // Apply sorting in memory
+            bool isAsc = orderDir?.ToLower() == "asc";
+            filteredLogs = orderColumn switch
+            {
+                1 => isAsc ? filteredLogs.OrderBy(l => l.PoNo) : filteredLogs.OrderByDescending(l => l.PoNo),
+                2 => isAsc ? filteredLogs.OrderBy(l => l.SendDate) : filteredLogs.OrderByDescending(l => l.SendDate),
+                3 => isAsc ? filteredLogs.OrderBy(l => l.VendorName) : filteredLogs.OrderByDescending(l => l.VendorName),
+                4 => isAsc ? filteredLogs.OrderBy(l => l.SendBy) : filteredLogs.OrderByDescending(l => l.SendBy),
+                5 => isAsc ? filteredLogs.OrderBy(l => l.ReadDate) : filteredLogs.OrderByDescending(l => l.ReadDate),
+                6 => isAsc ? filteredLogs.OrderBy(l => l.Status) : filteredLogs.OrderByDescending(l => l.Status),
+                _ => filteredLogs.OrderByDescending(l => l.SendDate)
+            };
+
+            // Apply pagination
+            response.Data = filteredLogs.Skip(start).Take(length).ToList();
+
             return response;
         }
 
@@ -201,36 +161,26 @@ WHERE (p.send_vendor_date BETWEEN @startDate AND @endDateTime)";
 
             var logs = (await _dapper.Query<POLogViewModel>("1", sql, new { startDate, endDateTime, status })).ToList();
 
-            // Get unique PO numbers to fetch vendor names from ERP
+            // Get unique PO numbers to fetch vendor names and PR numbers from ERP
             var poNos = logs.Select(l => l.PoNo).Distinct().ToList();
             if (poNos.Any())
             {
                 var poList = string.Join("','", poNos);
                 string vendorSql = $@"
-                    SELECT DISTINCT POM_PurchorderID AS PoNo, POM_VendorName AS VendorName
+                    SELECT DISTINCT POM_PurchorderID AS PoNo, POM_VendorName AS VendorName, PRNbr AS PrNo
                     FROM [iERP85].[dbo].[vw_mfc_rptPOPrint]
                     WHERE POM_PurchorderID IN ('{poList}')";
                 
-                var vendors = (await _dapper.Query<POLogViewModel>("E", vendorSql)).ToDictionary(v => v.PoNo, v => v.VendorName);
-                
-                // Fetch PR numbers from pur_po table in UICT2
-                string prSql = $@"
-                    SELECT [pono] AS PoNo, [prno] AS PrNo
-                    FROM [UICT2].[dbo].[pur_po]
-                    WHERE [pono] IN ('{poList}')";
-                
-                var prNumbers = (await _dapper.Query<POLogViewModel>("2", prSql)).ToDictionary(p => p.PoNo, p => p.PrNo);
+                var poData = (await _dapper.Query<POLogViewModel>("E", vendorSql))
+                    .GroupBy(p => p.PoNo)
+                    .ToDictionary(g => g.Key, g => g.First());
                 
                 foreach (var log in logs)
                 {
-                    if (vendors.TryGetValue(log.PoNo, out var vendorName))
+                    if (poData.TryGetValue(log.PoNo, out var detail))
                     {
-                        log.VendorName = vendorName;
-                    }
-                    
-                    if (prNumbers.TryGetValue(log.PoNo, out var prNo))
-                    {
-                        log.PrNo = prNo;
+                        log.VendorName = detail.VendorName;
+                        log.PrNo = detail.PrNo ?? "-";
                     }
                     else
                     {
